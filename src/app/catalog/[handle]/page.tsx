@@ -105,7 +105,10 @@ export default async function ProductDetailPage({
             )}
 
             <div className="mt-2 rounded-xl border border-brand-sand bg-white p-5">
-              <ProductSizeSelector variants={variants} />
+              <ProductSizeSelector
+                variants={variants}
+                shopifyHandle={product.shopify_handle}
+              />
             </div>
           </div>
         </div>
