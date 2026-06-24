@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/sign-out-button";
@@ -59,9 +60,16 @@ export default async function DashboardPage() {
       </div>
 
       <p className="rounded-md border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-gray-700">
-        This is your gifting dashboard. Browsing the catalog, building orders, and
-        managing recipients will live here as we build them out.
+        This is your gifting dashboard. Building orders and managing recipients
+        will live here as we build them out.
       </p>
+
+      <Link
+        href="/catalog"
+        className="inline-flex w-fit items-center gap-2 rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+      >
+        Browse the catalog →
+      </Link>
     </main>
   );
 }
