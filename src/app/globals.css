@@ -3,6 +3,17 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* The Happy Box brand palette — warm, premium, Canadian. A first pass used by
+     the catalog; refined after seeing it live. Kept separate from the
+     --background/--foreground tokens so other pages are untouched. */
+  --brand-cream: #fbf6ef; /* warm off-white surface */
+  --brand-sand: #f1e7da; /* slightly deeper warm surface / borders */
+  --brand-ink: #2c2620; /* warm near-black text */
+  --brand-muted: #6f655a; /* muted warm grey for secondary text */
+  --brand-berry: #9c3a4d; /* cranberry accent (buttons, highlights) */
+  --brand-berry-dark: #7e2c3d; /* hover/active for the accent */
+  --brand-gold: #c08a3e; /* warm gold for featured accents */
 }
 
 @theme inline {
@@ -10,6 +21,15 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Expose the brand palette as Tailwind color utilities (bg-brand-berry, etc.) */
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-sand: var(--brand-sand);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-berry: var(--brand-berry);
+  --color-brand-berry-dark: var(--brand-berry-dark);
+  --color-brand-gold: var(--brand-gold);
 }
 
 @media (prefers-color-scheme: dark) {
