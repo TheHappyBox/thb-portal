@@ -1,122 +1,229 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ProductWithRelations } from "@/types/catalog";
-import type { BuilderState, OrderMode, SelectedBox } from "@/types/order";
+import type { BrandingOption, ProductWithRelations } from "@/types/catalog";
+import type {
+  BuilderState,
+  OrderMode,
+  RecipientDraft,
+  SelectedBox,
+} from "@/types/order";
 import {
   boxesValidForMode,
+  brandingById,
+  defaultBrandingOption,
   emptyBuilderState,
   loadBuilderState,
   mergeInitialBox,
+  orderTotalCents,
   reconcileBoxesForMode,
+  recipientsValid,
+  recipientToInput,
+  resolveBoxes,
   saveBuilderState,
 } from "@/lib/order-builder";
+import { saveOrderDraft, saveRecipients } from "@/app/orders/actions";
 import { ModeStep } from "@/components/order-builder/mode-step";
 import { BoxStep } from "@/components/order-builder/box-step";
+import { GiftOptionsStep } from "@/components/order-builder/gift-options-step";
+import { RecipientsStep } from "@/components/order-builder/recipients-step";
 import { OrderSummary } from "@/components/order-builder/order-summary";
+import { OrderTotalBar } from "@/components/order-builder/order-total-bar";
 
-type Step = "mode" | "boxes" | "summary";
+type Step = "mode" | "boxes" | "giftOptions" | "recipients" | "summary";
 
-/** Pick the first unfinished step for a given builder state. */
+/** Pick the first unfinished step when resuming from saved state. */
 function stepFor(state: BuilderState): Step {
-  if (state.mode && boxesValidForMode(state.boxes, state.mode)) return "summary";
-  if (state.mode) return "boxes";
-  return "mode";
+  if (!state.mode) return "mode";
+  if (!boxesValidForMode(state.boxes, state.mode)) return "boxes";
+  if (recipientsValid(state.recipients)) return "summary";
+  return state.orderId ? "recipients" : "giftOptions";
 }
 
 /**
- * Where to go once the mode is chosen. The box step is only worth showing when
- * there's a real selection left to make:
- *  - SINGLE with a box already picked (e.g. arrived from the catalog) → nothing
- *    left to choose, so skip straight to review.
- *  - otherwise (no box yet, or MULTIPLE so more boxes can be added) → box step.
+ * Whether the box step is worth showing after the mode is chosen. SINGLE mode
+ * with a box already picked (e.g. arrived from the catalog) has nothing left to
+ * choose, so it skips the box step; otherwise the box step is shown.
  */
-function nextStepAfterMode(state: BuilderState): Step {
-  if (state.mode === "single" && boxesValidForMode(state.boxes, state.mode)) {
-    return "summary";
-  }
-  return "boxes";
+function skipsBoxStep(state: BuilderState): boolean {
+  return state.mode === "single" && boxesValidForMode(state.boxes, state.mode);
 }
 
 /**
- * Order builder shell. Holds the in-progress order (mode + boxes) as INDEPENDENT
- * state — either can be set first, depending on the entry point — and mirrors it
- * to sessionStorage so a refresh doesn't lose work. It guides the buyer through
- * whichever pieces are unset and converges on a review summary. No DB writes yet.
- *
- * `state` and the on-screen `step` are kept in one object so the one-time
- * sessionStorage hydration is a single state update.
+ * Order builder shell. Holds the in-progress order and mirrors it to
+ * sessionStorage. From the gift-options step onward it also persists a DRAFT
+ * order to the database via server actions (account-scoped). Guides the buyer
+ * through the steps and converges on a review with a correct total.
  */
 export function OrderBuilder({
   products,
+  brandingOptions,
   initialBox,
 }: {
   products: ProductWithRelations[];
+  brandingOptions: BrandingOption[];
   initialBox: SelectedBox | null;
 }) {
-  // Seed deterministically (same on server + client) to avoid hydration drift;
-  // saved sessionStorage state is merged in after mount.
   const [view, setView] = useState<{ state: BuilderState; step: Step }>(() => ({
     state: mergeInitialBox(emptyBuilderState, initialBox),
     step: "mode",
   }));
+  const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const hydrated = useRef(false);
 
-  // On mount: merge any saved state with the entry-point box, then land on the
-  // first unfinished step. A one-time read from an external store (sessionStorage).
+  // One-time hydration from sessionStorage (an external store).
   useEffect(() => {
     const loaded = mergeInitialBox(loadBuilderState(), initialBox);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration from sessionStorage
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration
     setView({ state: loaded, step: stepFor(loaded) });
     hydrated.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist after every change (once hydrated, so we don't clobber saved state).
+  // Persist to sessionStorage after every change (once hydrated).
   useEffect(() => {
     if (hydrated.current) saveBuilderState(view.state);
   }, [view.state]);
 
   const { state, step } = view;
 
-  function chooseMode(mode: OrderMode) {
-    setView((prev) => {
-      const next = { mode, boxes: reconcileBoxesForMode(prev.state.boxes, mode) };
-      return { state: next, step: nextStepAfterMode(next) };
-    });
+  // ---- state updates ----
+  function patchState(patch: Partial<BuilderState>) {
+    setView((prev) => ({ ...prev, state: { ...prev.state, ...patch } }));
   }
-
   function setBoxes(boxes: SelectedBox[]) {
-    setView((prev) => ({ ...prev, state: { ...prev.state, boxes } }));
+    patchState({ boxes });
   }
-
+  function setRecipients(recipients: RecipientDraft[]) {
+    patchState({ recipients });
+  }
   function goTo(step: Step) {
     setView((prev) => ({ ...prev, step }));
   }
 
-  const canContinueBoxes = state.mode
-    ? boxesValidForMode(state.boxes, state.mode)
-    : false;
+  // Apply branding defaults (the $0 option per group) if not chosen yet.
+  function withBrandingDefaults(s: BuilderState): BuilderState {
+    return {
+      ...s,
+      messageCardOptionId:
+        s.messageCardOptionId ??
+        defaultBrandingOption(brandingOptions, "message_card")?.id ??
+        null,
+      boxBrandingOptionId:
+        s.boxBrandingOptionId ??
+        defaultBrandingOption(brandingOptions, "box_branding")?.id ??
+        null,
+    };
+  }
+
+  // Persist the draft order (+ items + branding + message). Returns the order id.
+  async function persistDraft(s: BuilderState): Promise<string | null> {
+    if (!s.mode) return null;
+    const res = await saveOrderDraft({
+      orderId: s.orderId,
+      mode: s.mode,
+      boxes: s.boxes,
+      messageCardOptionId: s.messageCardOptionId,
+      boxBrandingOptionId: s.boxBrandingOptionId,
+      sharedMessage: s.sharedMessage,
+    });
+    if (!res.ok) {
+      setActionError(res.error);
+      return null;
+    }
+    return res.orderId;
+  }
+
+  // ---- transitions ----
+  function chooseMode(mode: OrderMode) {
+    const next: BuilderState = {
+      ...state,
+      mode,
+      boxes: reconcileBoxesForMode(state.boxes, mode),
+    };
+    if (skipsBoxStep(next)) {
+      void enterGiftOptions(next);
+    } else {
+      setView({ state: next, step: "boxes" });
+    }
+  }
+
+  // Move into gift options, seeding branding defaults and saving the draft.
+  async function enterGiftOptions(base: BuilderState) {
+    const next = withBrandingDefaults(base);
+    setView({ state: next, step: "giftOptions" });
+    setSaving(true);
+    setActionError(null);
+    const orderId = await persistDraft(next);
+    setSaving(false);
+    if (orderId) patchState({ orderId });
+  }
+
+  async function continueFromGiftOptions() {
+    goTo("recipients");
+    setSaving(true);
+    setActionError(null);
+    const orderId = await persistDraft(state);
+    setSaving(false);
+    if (orderId) patchState({ orderId });
+  }
+
+  async function continueFromRecipients() {
+    setSaving(true);
+    setActionError(null);
+    // Make sure the draft exists before attaching recipients.
+    let orderId = state.orderId;
+    if (!orderId) orderId = await persistDraft(state);
+    if (!orderId) {
+      setSaving(false);
+      return; // persistDraft already set the error
+    }
+    if (state.orderId !== orderId) patchState({ orderId });
+    const res = await saveRecipients(orderId, state.recipients.map(recipientToInput));
+    setSaving(false);
+    if (!res.ok) {
+      setActionError(res.error);
+      return;
+    }
+    goTo("summary");
+  }
+
+  // ---- derived ----
+  const views = resolveBoxes(state.boxes, products);
+  const messageCard = brandingById(brandingOptions, state.messageCardOptionId);
+  const boxBranding = brandingById(brandingOptions, state.boxBrandingOptionId);
+  const totalCents = orderTotalCents(views, messageCard, boxBranding);
+  const currency = views[0]?.variant.currency ?? "CAD";
+  const canContinueBoxes = state.mode ? boxesValidForMode(state.boxes, state.mode) : false;
+  const canContinueRecipients = recipientsValid(state.recipients);
+  const showTotalBar = step === "giftOptions" || step === "recipients";
 
   const steps: { key: Step; label: string }[] = [
-    { key: "mode", label: "Recipients" },
+    { key: "mode", label: "Type" },
     { key: "boxes", label: "Boxes" },
+    { key: "giftOptions", label: "Gift options" },
+    { key: "recipients", label: "Recipients" },
     { key: "summary", label: "Review" },
   ];
+  const activeIndex = steps.findIndex((s) => s.key === step);
 
   return (
     <div className="flex flex-col gap-8">
       {/* Step indicator */}
-      <ol className="flex items-center gap-2 text-sm">
+      <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
         {steps.map((s, i) => {
           const active = s.key === step;
+          const done = i < activeIndex;
           return (
             <li key={s.key} className="flex items-center gap-2">
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
                   active
                     ? "bg-brand-berry text-white"
-                    : "bg-brand-sand text-brand-muted"
+                    : done
+                      ? "bg-brand-berry/20 text-brand-berry"
+                      : "bg-brand-sand text-brand-muted"
                 }`}
               >
                 {i + 1}
@@ -124,13 +231,13 @@ export function OrderBuilder({
               <span className={active ? "font-medium text-brand-ink" : "text-brand-muted"}>
                 {s.label}
               </span>
-              {i < steps.length - 1 && (
-                <span className="mx-1 text-brand-sand">→</span>
-              )}
+              {i < steps.length - 1 && <span className="mx-1 text-brand-sand">→</span>}
             </li>
           );
         })}
       </ol>
+
+      {showTotalBar && <OrderTotalBar totalCents={totalCents} currency={currency} />}
 
       {step === "mode" && <ModeStep mode={state.mode} onChoose={chooseMode} />}
 
@@ -143,50 +250,114 @@ export function OrderBuilder({
         />
       )}
 
+      {step === "giftOptions" && (
+        <GiftOptionsStep
+          brandingOptions={brandingOptions}
+          messageCardOptionId={state.messageCardOptionId}
+          boxBrandingOptionId={state.boxBrandingOptionId}
+          sharedMessage={state.sharedMessage}
+          onChange={patchState}
+        />
+      )}
+
+      {step === "recipients" && state.mode && (
+        <RecipientsStep
+          mode={state.mode}
+          recipients={state.recipients}
+          sharedMessage={state.sharedMessage}
+          onChange={setRecipients}
+        />
+      )}
+
       {step === "summary" && (
         <OrderSummary
           state={state}
           products={products}
+          brandingOptions={brandingOptions}
           onEditMode={() => goTo("mode")}
           onEditBoxes={() => goTo("boxes")}
+          onEditGiftOptions={() => goTo("giftOptions")}
+          onEditRecipients={() => goTo("recipients")}
         />
       )}
 
-      {/* Footer navigation for the two editable steps. */}
+      {actionError && (
+        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          {actionError}
+        </p>
+      )}
+
+      {/* Footer navigation */}
       {step === "mode" && (
-        <div className="flex items-center justify-end border-t border-brand-sand pt-4">
-          <button
-            type="button"
-            onClick={() =>
-              setView((prev) => ({ ...prev, step: nextStepAfterMode(prev.state) }))
-            }
-            disabled={!state.mode}
-            className="rounded-md bg-brand-berry px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-berry-dark disabled:opacity-50"
-          >
-            Continue →
-          </button>
-        </div>
+        <FooterNav
+          onNext={() => (skipsBoxStep(state) ? enterGiftOptions(state) : goTo("boxes"))}
+          nextLabel="Continue →"
+          nextDisabled={!state.mode}
+        />
       )}
 
       {step === "boxes" && (
-        <div className="flex items-center justify-between border-t border-brand-sand pt-4">
-          <button
-            type="button"
-            onClick={() => goTo("mode")}
-            className="text-sm text-brand-muted underline transition hover:text-brand-ink"
-          >
-            ← Back
-          </button>
-          <button
-            type="button"
-            onClick={() => goTo("summary")}
-            disabled={!canContinueBoxes}
-            className="rounded-md bg-brand-berry px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-berry-dark disabled:opacity-50"
-          >
-            Review order →
-          </button>
-        </div>
+        <FooterNav
+          onBack={() => goTo("mode")}
+          onNext={() => enterGiftOptions(state)}
+          nextLabel="Continue →"
+          nextDisabled={!canContinueBoxes}
+        />
       )}
+
+      {step === "giftOptions" && (
+        <FooterNav
+          onBack={() => goTo("boxes")}
+          onNext={continueFromGiftOptions}
+          nextLabel={saving ? "Saving…" : "Continue →"}
+          nextDisabled={saving}
+        />
+      )}
+
+      {step === "recipients" && (
+        <FooterNav
+          onBack={() => goTo("giftOptions")}
+          onNext={continueFromRecipients}
+          nextLabel={saving ? "Saving…" : "Review order →"}
+          nextDisabled={saving || !canContinueRecipients}
+        />
+      )}
+    </div>
+  );
+}
+
+function FooterNav({
+  onBack,
+  onNext,
+  nextLabel,
+  nextDisabled,
+}: {
+  onBack?: () => void;
+  onNext: () => void;
+  nextLabel: string;
+  nextDisabled?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between border-t border-brand-sand pt-4">
+      {onBack ? (
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-sm text-brand-muted underline transition hover:text-brand-ink"
+        >
+          ← Back
+        </button>
+      ) : (
+        <span />
+      )}
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={nextDisabled}
+        className="rounded-md bg-brand-berry px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-berry-dark disabled:opacity-50"
+      >
+        {nextLabel}
+      </button>
     </div>
   );
 }

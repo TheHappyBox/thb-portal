@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/sign-out-button";
 import { OrderBuilder } from "@/components/order-builder/order-builder";
 import { defaultVariant } from "@/lib/pricing";
-import type { ProductWithRelations } from "@/types/catalog";
+import type { BrandingOption, ProductWithRelations } from "@/types/catalog";
 import type { SelectedBox } from "@/types/order";
 
 export const metadata: Metadata = {
@@ -51,6 +51,20 @@ export default async function NewOrderPage({
 
   const products = (productData ?? []) as ProductWithRelations[];
 
+  // Global gift add-on catalog (RLS allows any logged-in user to read it).
+  const { data: brandingData, error: brandingError } = await supabase
+    .from("branding_options")
+    .select("*")
+    .eq("is_active", true)
+    .order("group_key", { ascending: true })
+    .order("sort_order", { ascending: true });
+
+  if (brandingError) {
+    throw new Error(`Could not load gift options: ${brandingError.message}`);
+  }
+
+  const brandingOptions = (brandingData ?? []) as BrandingOption[];
+
   // Resolve an entry-point box (?box=&variant=) into a SelectedBox. If the handle
   // or variant doesn't match a real, active product, ignore it silently.
   const { box: boxHandle, variant: variantId } = await searchParams;
@@ -89,7 +103,11 @@ export default async function NewOrderPage({
           </h1>
         </div>
 
-        <OrderBuilder products={products} initialBox={initialBox} />
+        <OrderBuilder
+          products={products}
+          brandingOptions={brandingOptions}
+          initialBox={initialBox}
+        />
       </div>
     </main>
   );

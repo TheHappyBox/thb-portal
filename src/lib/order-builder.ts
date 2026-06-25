@@ -1,20 +1,66 @@
-import type { ProductWithRelations } from "@/types/catalog";
+import type { BrandingGroup, BrandingOption, ProductWithRelations } from "@/types/catalog";
 import type {
   BuilderState,
   OrderMode,
+  RecipientDraft,
+  RecipientInput,
   SelectedBox,
   SelectedBoxView,
 } from "@/types/order";
 
 /**
  * Pure helpers for the order builder. The builder state is held client-side and
- * mirrored to sessionStorage so a mid-build refresh doesn't lose work. Nothing
- * here touches the database — that arrives with the later save/submit step.
+ * mirrored to sessionStorage so a mid-build refresh doesn't lose work. From the
+ * gift-options step onward it is also persisted to the database as a draft order
+ * (see src/app/orders/actions.ts); the saved draft id lives in `orderId`.
  */
 
 const STORAGE_KEY = "thb-order-builder";
 
-export const emptyBuilderState: BuilderState = { mode: null, boxes: [] };
+export const emptyBuilderState: BuilderState = {
+  orderId: null,
+  mode: null,
+  boxes: [],
+  messageCardOptionId: null,
+  boxBrandingOptionId: null,
+  sharedMessage: "",
+  recipients: [],
+};
+
+/** A blank recipient row. */
+export function blankRecipient(): RecipientDraft {
+  return {
+    fullName: "",
+    email: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    region: "",
+    postalCode: "",
+    country: "",
+    selfClaim: false,
+    message: "",
+  };
+}
+
+/** Coerce an unknown parsed object into a full RecipientDraft (defensive). */
+function normalizeRecipient(r: unknown): RecipientDraft {
+  const o = (r ?? {}) as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" ? v : "");
+  return {
+    id: typeof o.id === "string" ? o.id : undefined,
+    fullName: str(o.fullName),
+    email: str(o.email),
+    addressLine1: str(o.addressLine1),
+    addressLine2: str(o.addressLine2),
+    city: str(o.city),
+    region: str(o.region),
+    postalCode: str(o.postalCode),
+    country: str(o.country),
+    selfClaim: o.selfClaim === true,
+    message: str(o.message),
+  };
+}
 
 /** Load saved builder state from sessionStorage (browser only). */
 export function loadBuilderState(): BuilderState {
@@ -24,8 +70,17 @@ export function loadBuilderState(): BuilderState {
     if (!raw) return emptyBuilderState;
     const parsed = JSON.parse(raw) as Partial<BuilderState>;
     return {
+      orderId: typeof parsed.orderId === "string" ? parsed.orderId : null,
       mode: parsed.mode === "single" || parsed.mode === "multiple" ? parsed.mode : null,
       boxes: Array.isArray(parsed.boxes) ? parsed.boxes.filter(isValidBox) : [],
+      messageCardOptionId:
+        typeof parsed.messageCardOptionId === "string" ? parsed.messageCardOptionId : null,
+      boxBrandingOptionId:
+        typeof parsed.boxBrandingOptionId === "string" ? parsed.boxBrandingOptionId : null,
+      sharedMessage: typeof parsed.sharedMessage === "string" ? parsed.sharedMessage : "",
+      recipients: Array.isArray(parsed.recipients)
+        ? parsed.recipients.map(normalizeRecipient)
+        : [],
     };
   } catch {
     // Corrupt/blocked storage shouldn't break the builder — start fresh.
@@ -124,7 +179,100 @@ export function resolveBoxes(
   return views;
 }
 
-/** Sum of all line totals, in cents. */
-export function orderTotalCents(views: SelectedBoxView[]): number {
-  return views.reduce((sum, v) => sum + v.lineTotalCents, 0);
+// ---------------------------------------------------------------------------
+// Branding + pricing (one central place; future per-account overrides slot here)
+// ---------------------------------------------------------------------------
+
+/** Find a branding option by id (null id / missing → undefined). */
+export function brandingById(
+  options: BrandingOption[],
+  id: string | null,
+): BrandingOption | undefined {
+  if (!id) return undefined;
+  return options.find((o) => o.id === id);
+}
+
+/** Active options for a group, in display order. */
+export function brandingForGroup(
+  options: BrandingOption[],
+  group: BrandingGroup,
+): BrandingOption[] {
+  return options
+    .filter((o) => o.group_key === group && o.is_active)
+    .sort((a, b) => a.sort_order - b.sort_order);
+}
+
+/** The default option for a group (lowest sort_order — the $0 choice). */
+export function defaultBrandingOption(
+  options: BrandingOption[],
+  group: BrandingGroup,
+): BrandingOption | undefined {
+  return brandingForGroup(options, group)[0];
+}
+
+/**
+ * The order total, in cents. Branding add-ons are per gift (per unit), so each
+ * box's unit price = variant + message-card + box-branding, times its quantity.
+ * Passing undefined branding contributes 0.
+ */
+export function orderTotalCents(
+  views: SelectedBoxView[],
+  messageCard?: BrandingOption,
+  boxBranding?: BrandingOption,
+): number {
+  const addonPerUnit = (messageCard?.price_cents ?? 0) + (boxBranding?.price_cents ?? 0);
+  return views.reduce(
+    (sum, v) => sum + (v.variant.price_cents + addonPerUnit) * v.quantity,
+    0,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Recipients
+// ---------------------------------------------------------------------------
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isValidEmail(email: string): boolean {
+  return EMAIL_RE.test(email.trim());
+}
+
+/**
+ * Human-readable issues for a recipient row (shown as inline hints). An empty
+ * array means no problems. A missing name is the only hard blocker (see
+ * `recipientsValid`); the rest are soft warnings.
+ */
+export function recipientIssues(r: RecipientDraft): string[] {
+  const issues: string[] = [];
+  if (!r.fullName.trim()) issues.push("Name is required");
+  if (r.email.trim() && !isValidEmail(r.email)) issues.push("Email looks invalid");
+  if (!r.selfClaim) {
+    const hasAddress =
+      r.addressLine1.trim() && r.city.trim() && r.postalCode.trim() && r.country.trim();
+    if (!hasAddress) {
+      issues.push("Add an address, or switch on the self-claim link");
+    }
+  }
+  return issues;
+}
+
+/** Enough to advance: at least one recipient and every recipient has a name. */
+export function recipientsValid(recipients: RecipientDraft[]): boolean {
+  return recipients.length > 0 && recipients.every((r) => r.fullName.trim().length > 0);
+}
+
+/** Map a builder recipient to the server-action input (drops the local id). */
+export function recipientToInput(r: RecipientDraft): RecipientInput {
+  return {
+    fullName: r.fullName.trim(),
+    email: r.email.trim(),
+    addressLine1: r.addressLine1.trim(),
+    addressLine2: r.addressLine2.trim(),
+    city: r.city.trim(),
+    region: r.region.trim(),
+    postalCode: r.postalCode.trim(),
+    country: r.country.trim(),
+    selfClaim: r.selfClaim,
+    message: r.message.trim(),
+  };
 }
