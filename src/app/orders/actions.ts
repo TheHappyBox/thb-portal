@@ -5,6 +5,7 @@ import type {
   ActionResult,
   OrderDraftInput,
   RecipientInput,
+  SavedRecipient,
 } from "@/types/order";
 
 /**
@@ -98,14 +99,16 @@ export async function saveOrderDraft(
 }
 
 /**
- * Replace the draft order's recipients with the given list. Simple delete +
- * insert keeps it idempotent for a draft; when the recipient claim page is built
- * we'll switch to an upsert that preserves each recipient's claim_token.
+ * Sync the draft order's recipients to the given list, PRESERVING each existing
+ * recipient's claim_token (and the address a self-claim recipient has already
+ * entered). Existing rows (with an id) are updated, new rows inserted, and rows no
+ * longer present are deleted. Returns the recipients in input order with their id
+ * + claim_token, so the builder can surface claim links.
  */
 export async function saveRecipients(
   orderId: string,
   recipients: RecipientInput[],
-): Promise<ActionResult<{ count: number }>> {
+): Promise<ActionResult<{ recipients: SavedRecipient[] }>> {
   const supabase = await createClient();
 
   const {
@@ -122,16 +125,62 @@ export async function saveRecipients(
   if (orderError) return { ok: false, error: orderError.message };
   if (!order) return { ok: false, error: "That order could not be found." };
 
-  const { error: deleteError } = await supabase
+  // What's currently saved for this order.
+  const { data: existing, error: existingError } = await supabase
     .from("recipients")
-    .delete()
+    .select("id, claim_token")
     .eq("order_id", orderId);
-  if (deleteError) {
-    return { ok: false, error: `Could not update recipients: ${deleteError.message}` };
+  if (existingError) {
+    return { ok: false, error: `Could not load recipients: ${existingError.message}` };
+  }
+  const tokenById = new Map((existing ?? []).map((e) => [e.id, e.claim_token]));
+
+  // Which incoming rows map to an existing row vs. are new.
+  const isExisting = (r: RecipientInput) => !!r.id && tokenById.has(r.id);
+
+  // Delete rows that are no longer in the list.
+  const keepIds = new Set(recipients.filter(isExisting).map((r) => r.id as string));
+  const toDelete = (existing ?? []).map((e) => e.id).filter((id) => !keepIds.has(id));
+  if (toDelete.length > 0) {
+    const { error } = await supabase
+      .from("recipients")
+      .delete()
+      .eq("order_id", orderId)
+      .in("id", toDelete);
+    if (error) return { ok: false, error: `Could not update recipients: ${error.message}` };
   }
 
-  if (recipients.length > 0) {
-    const rows = recipients.map((r) => ({
+  // Update existing rows. Never touch claim_token/claim_status; for a self-claim
+  // recipient, leave the address they entered themselves untouched.
+  for (const r of recipients) {
+    if (!isExisting(r)) continue;
+    const fields: Record<string, unknown> = {
+      full_name: r.fullName || null,
+      email: r.email || null,
+      message: r.message || null,
+      self_claim: r.selfClaim,
+    };
+    if (!r.selfClaim) {
+      fields.address_line1 = r.addressLine1 || null;
+      fields.address_line2 = r.addressLine2 || null;
+      fields.city = r.city || null;
+      fields.region = r.region || null;
+      fields.postal_code = r.postalCode || null;
+      fields.country = r.country || null;
+    }
+    const { error } = await supabase
+      .from("recipients")
+      .update(fields)
+      .eq("id", r.id as string)
+      .eq("order_id", orderId);
+    if (error) return { ok: false, error: `Could not save a recipient: ${error.message}` };
+  }
+
+  // Insert new rows; rows come back in insertion order.
+  const newOnes = recipients.filter((r) => !isExisting(r));
+  let inserted: { id: string; claim_token: string }[] = [];
+  if (newOnes.length > 0) {
+    const rows = newOnes.map((r) => ({
       order_id: orderId,
       full_name: r.fullName || null,
       email: r.email || null,
@@ -145,11 +194,25 @@ export async function saveRecipients(
       message: r.message || null,
       claim_status: "invited",
     }));
-    const { error: insertError } = await supabase.from("recipients").insert(rows);
-    if (insertError) {
-      return { ok: false, error: `Could not save recipients: ${insertError.message}` };
+    const { data, error } = await supabase
+      .from("recipients")
+      .insert(rows)
+      .select("id, claim_token");
+    if (error || !data) {
+      return { ok: false, error: `Could not save recipients: ${error?.message ?? "unknown error"}` };
     }
+    inserted = data;
   }
 
-  return { ok: true, count: recipients.length };
+  // Build the result in input order, threading new ids/tokens in.
+  let insertIndex = 0;
+  const saved: SavedRecipient[] = recipients.map((r) => {
+    if (isExisting(r)) {
+      return { id: r.id as string, claimToken: tokenById.get(r.id as string)!, selfClaim: r.selfClaim };
+    }
+    const ins = inserted[insertIndex++];
+    return { id: ins.id, claimToken: ins.claim_token, selfClaim: r.selfClaim };
+  });
+
+  return { ok: true, recipients: saved };
 }

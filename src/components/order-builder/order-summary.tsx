@@ -5,6 +5,7 @@ import type { BuilderState } from "@/types/order";
 import { formatPrice } from "@/lib/pricing";
 import { brandingById, orderTotalCents, resolveBoxes } from "@/lib/order-builder";
 import { ProductImage } from "@/components/product-image";
+import { ClaimLink } from "@/components/order-builder/claim-link";
 
 /**
  * Review step: recaps mode, boxes, gift options (branding + shared message), and
@@ -104,17 +105,26 @@ export function OrderSummary({
         {state.recipients.length === 0 ? (
           <p className="text-sm text-brand-muted">None added yet.</p>
         ) : (
-          <ul className="flex flex-col gap-1 text-sm">
+          <ul className="flex flex-col divide-y divide-brand-sand text-sm">
             {state.recipients.slice(0, 8).map((r, i) => (
-              <li key={i} className="flex items-center justify-between">
+              <li
+                key={i}
+                className="flex flex-wrap items-center justify-between gap-2 py-2"
+              >
                 <span className="text-brand-ink">{r.fullName || "Unnamed recipient"}</span>
-                <span className="text-xs text-brand-muted">
-                  {r.selfClaim ? "Self-claim link" : "Address provided"}
-                </span>
+                {r.selfClaim ? (
+                  r.claimToken ? (
+                    <ClaimLink token={r.claimToken} />
+                  ) : (
+                    <span className="text-xs text-brand-muted">Self-claim link</span>
+                  )
+                ) : (
+                  <span className="text-xs text-brand-muted">Address provided</span>
+                )}
               </li>
             ))}
             {state.recipients.length > 8 && (
-              <li className="text-xs text-brand-muted">
+              <li className="py-2 text-xs text-brand-muted">
                 + {state.recipients.length - 8} more
               </li>
             )}

@@ -186,7 +186,19 @@ export function OrderBuilder({
       setActionError(res.error);
       return;
     }
-    goTo("summary");
+    // Thread the saved ids + claim tokens back in (same order we sent), so the
+    // review can show each self-claim recipient's link and re-saves can upsert.
+    setView((prev) => ({
+      state: {
+        ...prev.state,
+        recipients: prev.state.recipients.map((r, i) => ({
+          ...r,
+          id: res.recipients[i]?.id ?? r.id,
+          claimToken: res.recipients[i]?.claimToken ?? r.claimToken,
+        })),
+      },
+      step: "summary",
+    }));
   }
 
   // ---- derived ----

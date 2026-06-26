@@ -25,6 +25,8 @@ export interface SelectedBox {
  */
 export interface RecipientDraft {
   id?: string;
+  /** The recipient's unguessable claim-link token, once saved. */
+  claimToken?: string;
   fullName: string;
   email: string;
   addressLine1: string;
@@ -78,6 +80,8 @@ export interface OrderDraftInput {
 
 /** A single recipient as sent to the saveRecipients server action. */
 export interface RecipientInput {
+  /** Database id when this row already exists (drives update vs insert). */
+  id?: string;
   fullName: string;
   email: string;
   addressLine1: string;
@@ -88,6 +92,13 @@ export interface RecipientInput {
   country: string;
   selfClaim: boolean;
   message: string;
+}
+
+/** A recipient after saving — carries the id + claim-link token, in input order. */
+export interface SavedRecipient {
+  id: string;
+  claimToken: string;
+  selfClaim: boolean;
 }
 
 /** Standard result shape for the order server actions. */

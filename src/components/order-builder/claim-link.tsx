@@ -1,0 +1,44 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+/**
+ * Shows a self-claim recipient's claim link with a Copy button, for the buyer to
+ * send. The absolute URL is built from the current origin so it works in any
+ * environment; it's resolved after mount to avoid a server/client mismatch.
+ */
+export function ClaimLink({ token }: { token: string }) {
+  const path = `/claim/${token}`;
+  const [url, setUrl] = useState(path);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read client-only origin once after mount
+    setUrl(`${window.location.origin}${path}`);
+  }, [path]);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard blocked — the link is visible to copy manually.
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <code className="max-w-[14rem] truncate rounded bg-brand-cream px-2 py-1 text-xs text-brand-ink sm:max-w-xs">
+        {url}
+      </code>
+      <button
+        type="button"
+        onClick={copy}
+        className="shrink-0 rounded-md border border-brand-berry px-2.5 py-1 text-xs font-medium text-brand-berry transition hover:bg-brand-berry hover:text-white"
+      >
+        {copied ? "Copied!" : "Copy link"}
+      </button>
+    </div>
+  );
+}

@@ -261,9 +261,10 @@ export function recipientsValid(recipients: RecipientDraft[]): boolean {
   return recipients.length > 0 && recipients.every((r) => r.fullName.trim().length > 0);
 }
 
-/** Map a builder recipient to the server-action input (drops the local id). */
+/** Map a builder recipient to the server-action input (keeps id for upserts). */
 export function recipientToInput(r: RecipientDraft): RecipientInput {
   return {
+    id: r.id,
     fullName: r.fullName.trim(),
     email: r.email.trim(),
     addressLine1: r.addressLine1.trim(),
