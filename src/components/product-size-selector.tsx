@@ -1,17 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { ProductVariant } from "@/types/catalog";
 import { defaultVariant, formatPrice, sortedVariants } from "@/lib/pricing";
 
 /**
  * Size picker on the product detail page. Receives a product's sizes and lets the
  * shopper choose between "Happy" and "Extra Happy" (or shows the single size for
- * fixed boxes), updating the displayed price as they select. There's no cart yet,
- * so the selection is local state only — it gets wired into the order flow in a
- * later feature.
+ * fixed boxes), updating the displayed price as they select. The "Start an order"
+ * button carries the chosen size into the order builder (/orders/new) via URL.
  */
-export function ProductSizeSelector({ variants }: { variants: ProductVariant[] }) {
+export function ProductSizeSelector({
+  variants,
+  shopifyHandle,
+}: {
+  variants: ProductVariant[];
+  shopifyHandle: string | null;
+}) {
   const sorted = sortedVariants(variants);
   const initial = defaultVariant(sorted) ?? sorted[0];
   const [selectedId, setSelectedId] = useState<string | undefined>(initial?.id);
@@ -68,6 +74,15 @@ export function ProductSizeSelector({ variants }: { variants: ProductVariant[] }
             })}
           </div>
         </div>
+      )}
+
+      {shopifyHandle && (
+        <Link
+          href={`/orders/new?box=${shopifyHandle}&variant=${selected.id}`}
+          className="mt-1 inline-flex w-fit items-center gap-2 rounded-md bg-brand-berry px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-berry-dark"
+        >
+          Start an order with this box →
+        </Link>
       )}
     </div>
   );

@@ -54,3 +54,21 @@ export interface ProductWithRelations extends Product {
   category: Pick<Category, "name" | "slug"> | null;
   variants: ProductVariant[];
 }
+
+/** Which gift add-on a branding option belongs to. */
+export type BrandingGroup = "message_card" | "box_branding";
+
+/**
+ * A global gift add-on (`public.branding_options`) — a message-card or
+ * box-branding choice, priced per gift (per unit) on top of the box price.
+ */
+export interface BrandingOption {
+  id: string;
+  name: string;
+  group_key: BrandingGroup;
+  price_cents: number;
+  currency: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+}

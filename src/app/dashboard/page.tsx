@@ -64,12 +64,20 @@ export default async function DashboardPage() {
         will live here as we build them out.
       </p>
 
-      <Link
-        href="/catalog"
-        className="inline-flex w-fit items-center gap-2 rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-      >
-        Browse the catalog →
-      </Link>
+      <div className="flex flex-wrap gap-3">
+        <Link
+          href="/orders/new"
+          className="inline-flex w-fit items-center gap-2 rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+        >
+          Start a new order →
+        </Link>
+        <Link
+          href="/catalog"
+          className="inline-flex w-fit items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-400 dark:border-gray-700 dark:text-gray-200"
+        >
+          Browse the catalog
+        </Link>
+      </div>
     </main>
   );
 }
