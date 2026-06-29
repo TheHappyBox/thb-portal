@@ -6,12 +6,13 @@ import { formatPrice } from "@/lib/pricing";
 import { brandingById, orderTotalCents, resolveBoxes } from "@/lib/order-builder";
 import { ProductImage } from "@/components/product-image";
 import { ClaimLink } from "@/components/order-builder/claim-link";
+import { CheckoutButton } from "@/components/order-builder/checkout-button";
 
 /**
  * Review step: recaps mode, boxes, gift options (branding + shared message), and
  * recipients, with a correct order total (box price + per-gift branding add-ons,
- * times quantity). "Continue to checkout" is disabled — checkout is the next
- * piece. Every earlier step is one click away to edit.
+ * times quantity). "Continue to checkout" hands off to Stripe's hosted checkout.
+ * Every earlier step is one click away to edit.
  */
 export function OrderSummary({
   state,
@@ -140,20 +141,8 @@ export function OrderSummary({
         </span>
       </div>
 
-      {/* Next step (coming soon) */}
-      <div className="flex flex-col items-start gap-2">
-        <button
-          type="button"
-          disabled
-          title="Coming soon"
-          className="cursor-not-allowed rounded-md bg-brand-berry px-5 py-2.5 text-sm font-medium text-white opacity-50"
-        >
-          Continue to checkout →
-        </button>
-        <p className="text-xs text-brand-muted">
-          Checkout and payment are coming soon — that&apos;s the next step we&apos;re building.
-        </p>
-      </div>
+      {/* Next step: pay via Stripe's hosted checkout */}
+      <CheckoutButton orderId={state.orderId} />
     </section>
   );
 }
