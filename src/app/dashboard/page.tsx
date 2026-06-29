@@ -83,6 +83,12 @@ export default async function DashboardPage() {
         >
           Browse the catalog
         </Link>
+        <Link
+          href="/settings"
+          className="inline-flex w-fit items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-400 dark:border-gray-700 dark:text-gray-200"
+        >
+          Account settings
+        </Link>
       </div>
     </main>
   );
