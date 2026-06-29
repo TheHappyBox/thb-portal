@@ -277,3 +277,79 @@ export function recipientToInput(r: RecipientDraft): RecipientInput {
     message: r.message.trim(),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Resume a saved draft: map database rows back into builder state
+// ---------------------------------------------------------------------------
+
+/** The `orders` columns needed to rebuild builder state. */
+export interface DraftOrderRow {
+  id: string;
+  mode: string | null;
+  message_card_option_id: string | null;
+  box_branding_option_id: string | null;
+  shared_message: string | null;
+}
+
+/** An `order_items` row. */
+export interface DraftItemRow {
+  product_id: string;
+  variant_id: string;
+  quantity: number;
+}
+
+/** A `recipients` row (nullable contact/address, as stored). */
+export interface DraftRecipientRow {
+  id: string;
+  claim_token: string | null;
+  full_name: string | null;
+  email: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  region: string | null;
+  postal_code: string | null;
+  country: string | null;
+  self_claim: boolean | null;
+  message: string | null;
+}
+
+/**
+ * Rebuild a full BuilderState from a saved draft order + its items + recipients.
+ * Pure (no I/O) so it's easy to test. Crucially it carries each recipient's `id`
+ * and `claimToken` through, so when the resumed builder re-saves it UPSERTS the
+ * same rows (and updates the same order via `orderId`) rather than creating a
+ * duplicate. Tolerates partial drafts (no boxes / no recipients yet).
+ */
+export function draftToBuilderState(
+  order: DraftOrderRow,
+  items: DraftItemRow[],
+  recipients: DraftRecipientRow[],
+): BuilderState {
+  return {
+    orderId: order.id,
+    mode: order.mode === "single" || order.mode === "multiple" ? order.mode : null,
+    boxes: items.map((i) => ({
+      productId: i.product_id,
+      variantId: i.variant_id,
+      quantity: i.quantity,
+    })),
+    messageCardOptionId: order.message_card_option_id,
+    boxBrandingOptionId: order.box_branding_option_id,
+    sharedMessage: order.shared_message ?? "",
+    recipients: recipients.map((r) => ({
+      id: r.id,
+      claimToken: r.claim_token ?? undefined,
+      fullName: r.full_name ?? "",
+      email: r.email ?? "",
+      addressLine1: r.address_line1 ?? "",
+      addressLine2: r.address_line2 ?? "",
+      city: r.city ?? "",
+      region: r.region ?? "",
+      postalCode: r.postal_code ?? "",
+      country: r.country ?? "",
+      selfClaim: r.self_claim === true,
+      message: r.message ?? "",
+    })),
+  };
+}

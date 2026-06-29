@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loadOrderDetail } from "@/lib/order-queries";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ProductImage } from "@/components/product-image";
 import { ClaimLink } from "@/components/order-builder/claim-link";
 import { formatPrice } from "@/lib/pricing";
-import { brandingById, orderTotalCents, resolveBoxes } from "@/lib/order-builder";
-import type { BrandingOption, ProductWithRelations } from "@/types/catalog";
+import type { BrandingOption } from "@/types/catalog";
 
 export const metadata: Metadata = {
   title: "Order confirmation · The Happy Box",
@@ -22,6 +22,8 @@ export const metadata: Metadata = {
  * Important: this page READS the order's status — it never sets it. "Paid" is
  * driven solely by the Stripe webhook, so if the buyer beats the webhook back
  * here we show a brief "confirming…" state rather than a premature success.
+ *
+ * Data loading is shared with the orders list/detail via loadOrderDetail.
  */
 export default async function OrderConfirmationPage({
   params,
@@ -39,84 +41,29 @@ export default async function OrderConfirmationPage({
     redirect("/login");
   }
 
-  // RLS scopes this to the buyer's own account; another account's order → null.
-  const { data: order, error: orderError } = await supabase
-    .from("orders")
-    .select(
-      "id, status, amount_total_cents, paid_at, mode, shared_message, message_card_option_id, box_branding_option_id",
-    )
-    .eq("id", orderId)
-    .maybeSingle();
-  if (orderError) {
-    throw new Error(`Could not load your order: ${orderError.message}`);
-  }
+  const order = await loadOrderDetail(orderId);
   if (!order) {
     notFound();
   }
 
   const isPaid = order.status === "paid";
-
-  // Line items + catalog (global, RLS-readable) to rebuild the order summary.
-  const { data: items } = await supabase
-    .from("order_items")
-    .select("product_id, variant_id, quantity")
-    .eq("order_id", orderId);
-
-  const { data: productData } = await supabase
-    .from("products")
-    .select("*, category:categories(name, slug), variants:product_variants(*)")
-    .eq("is_active", true);
-  const products = (productData ?? []) as ProductWithRelations[];
-
-  const boxes = (items ?? []).map((i) => ({
-    productId: i.product_id,
-    variantId: i.variant_id,
-    quantity: i.quantity,
-  }));
-  const views = resolveBoxes(boxes, products);
-
-  const brandingIds = [order.message_card_option_id, order.box_branding_option_id].filter(
-    (id): id is string => typeof id === "string",
-  );
-  let brandingOptions: BrandingOption[] = [];
-  if (brandingIds.length > 0) {
-    const { data: brandingData } = await supabase
-      .from("branding_options")
-      .select("*")
-      .in("id", brandingIds);
-    brandingOptions = (brandingData ?? []) as BrandingOption[];
-  }
-  const messageCard = brandingById(brandingOptions, order.message_card_option_id);
-  const boxBranding = brandingById(brandingOptions, order.box_branding_option_id);
-
-  const currency = views[0]?.variant.currency ?? "CAD";
-  // Prefer the snapshot charged at checkout; fall back to a live recompute.
-  const totalCents = order.amount_total_cents ?? orderTotalCents(views, messageCard, boxBranding);
-
-  // Recipients (for the count + self-claim links).
-  const { data: recipientsData } = await supabase
-    .from("recipients")
-    .select("full_name, self_claim, claim_token")
-    .eq("order_id", orderId)
-    .order("created_at", { ascending: true });
-  const recipients = recipientsData ?? [];
-  const selfClaimRecipients = recipients.filter((r) => r.self_claim && r.claim_token);
+  const selfClaimRecipients = order.recipients.filter((r) => r.selfClaim && r.claimToken);
 
   return (
     <main className="min-h-screen bg-brand-cream">
       <div className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-10 sm:px-6 lg:py-14">
         <header className="flex items-center justify-between gap-4">
           <Link
-            href="/catalog"
+            href="/orders"
             className="text-sm text-brand-muted transition hover:text-brand-ink"
           >
-            ← Catalog
+            ← My orders
           </Link>
           <SignOutButton />
         </header>
 
         {isPaid ? (
-          <ConfirmedHeader paidTotal={formatPrice(totalCents, currency)} />
+          <ConfirmedHeader paidTotal={formatPrice(order.totalCents, order.currency)} />
         ) : (
           <PendingHeader refreshHref={`/orders/${orderId}/confirmation`} />
         )}
@@ -125,9 +72,9 @@ export default async function OrderConfirmationPage({
         <section className="flex flex-col gap-4 rounded-xl border border-brand-sand bg-white p-5">
           <h2 className="text-lg font-semibold text-brand-ink">Order summary</h2>
 
-          {views.length > 0 && (
+          {order.views.length > 0 && (
             <ul className="flex flex-col divide-y divide-brand-sand">
-              {views.map((view) => (
+              {order.views.map((view) => (
                 <li
                   key={`${view.productId}-${view.variantId}`}
                   className="flex items-center gap-3 py-3"
@@ -138,8 +85,8 @@ export default async function OrderConfirmationPage({
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-brand-ink">{view.product.name}</p>
                     <p className="text-sm text-brand-muted">
-                      {view.variant.name} · {formatPrice(view.variant.price_cents, currency)} ×{" "}
-                      {view.quantity}
+                      {view.variant.name} ·{" "}
+                      {formatPrice(view.variant.price_cents, order.currency)} × {view.quantity}
                     </p>
                   </div>
                 </li>
@@ -148,17 +95,19 @@ export default async function OrderConfirmationPage({
           )}
 
           <dl className="flex flex-col gap-1 text-sm">
-            <SummaryRow term="Message card" value={brandingLabel(messageCard)} />
-            <SummaryRow term="Box branding" value={brandingLabel(boxBranding)} />
+            <SummaryRow term="Message card" value={brandingLabel(order.messageCard)} />
+            <SummaryRow term="Box branding" value={brandingLabel(order.boxBranding)} />
             <SummaryRow
               term="Recipients"
-              value={`${recipients.length} ${recipients.length === 1 ? "recipient" : "recipients"}`}
+              value={`${order.recipients.length} ${
+                order.recipients.length === 1 ? "recipient" : "recipients"
+              }`}
             />
           </dl>
 
-          {order.shared_message?.trim() && (
+          {order.sharedMessage?.trim() && (
             <p className="rounded-md bg-brand-cream px-3 py-2 text-sm italic text-brand-ink">
-              “{order.shared_message.trim()}”
+              “{order.sharedMessage.trim()}”
             </p>
           )}
 
@@ -167,7 +116,7 @@ export default async function OrderConfirmationPage({
               {isPaid ? "Total paid" : "Order total"}
             </span>
             <span className="text-xl font-semibold text-brand-ink">
-              {formatPrice(totalCents, currency)}
+              {formatPrice(order.totalCents, order.currency)}
             </span>
           </div>
         </section>
@@ -184,18 +133,24 @@ export default async function OrderConfirmationPage({
             <ul className="flex flex-col divide-y divide-brand-sand text-sm">
               {selfClaimRecipients.map((r, i) => (
                 <li key={i} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <span className="text-brand-ink">{r.full_name || "Unnamed recipient"}</span>
-                  <ClaimLink token={r.claim_token as string} />
+                  <span className="text-brand-ink">{r.fullName || "Unnamed recipient"}</span>
+                  <ClaimLink token={r.claimToken as string} />
                 </li>
               ))}
             </ul>
           </section>
         )}
 
-        <div>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/orders"
+            className="inline-block rounded-md bg-brand-berry px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-berry-dark"
+          >
+            View my orders
+          </Link>
           <Link
             href="/catalog"
-            className="inline-block rounded-md bg-brand-berry px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-berry-dark"
+            className="inline-block rounded-md border border-brand-berry px-5 py-2.5 text-sm font-medium text-brand-berry transition hover:bg-brand-berry hover:text-white"
           >
             Back to catalog
           </Link>

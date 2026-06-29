@@ -5,8 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/sign-out-button";
 import { OrderBuilder } from "@/components/order-builder/order-builder";
 import { defaultVariant } from "@/lib/pricing";
+import { loadDraftBuilderState } from "@/lib/order-queries";
 import type { BrandingOption, ProductWithRelations } from "@/types/catalog";
-import type { SelectedBox } from "@/types/order";
+import type { BuilderState, SelectedBox } from "@/types/order";
 
 export const metadata: Metadata = {
   title: "New order · The Happy Box",
@@ -26,7 +27,7 @@ export default async function NewOrderPage({
   searchParams,
 }: {
   // Next 16: searchParams is a Promise and must be awaited.
-  searchParams: Promise<{ box?: string; variant?: string }>;
+  searchParams: Promise<{ box?: string; variant?: string; draft?: string }>;
 }) {
   const supabase = await createClient();
 
@@ -65,11 +66,28 @@ export default async function NewOrderPage({
 
   const brandingOptions = (brandingData ?? []) as BrandingOption[];
 
+  const { box: boxHandle, variant: variantId, draft } = await searchParams;
+
+  // Resume flow: ?draft=<orderId> reopens a saved draft pre-filled. The draft is
+  // loaded account-scoped (RLS); a missing/foreign order sends them to the list,
+  // and a non-draft (e.g. paid) order is view-only so we redirect to its detail.
+  let initialDraft: BuilderState | null = null;
+  if (draft) {
+    const resumed = await loadDraftBuilderState(draft);
+    if (!resumed) {
+      redirect("/orders");
+    } else if (resumed.status !== "draft") {
+      redirect(`/orders/${draft}`);
+    } else {
+      initialDraft = resumed.state;
+    }
+  }
+
   // Resolve an entry-point box (?box=&variant=) into a SelectedBox. If the handle
-  // or variant doesn't match a real, active product, ignore it silently.
-  const { box: boxHandle, variant: variantId } = await searchParams;
+  // or variant doesn't match a real, active product, ignore it silently. Skipped
+  // when resuming a draft (the draft already carries its boxes).
   let initialBox: SelectedBox | null = null;
-  if (boxHandle) {
+  if (!initialDraft && boxHandle) {
     const product = products.find((p) => p.shopify_handle === boxHandle);
     if (product) {
       const variant =
@@ -107,6 +125,7 @@ export default async function NewOrderPage({
           products={products}
           brandingOptions={brandingOptions}
           initialBox={initialBox}
+          initialDraft={initialDraft}
         />
       </div>
     </main>
