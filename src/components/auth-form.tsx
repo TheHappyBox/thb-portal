@@ -101,6 +101,15 @@ export function AuthForm({
           autoComplete={isSignup ? "new-password" : "current-password"}
         />
 
+        {!isSignup && (
+          <Link
+            href="/forgot-password"
+            className="-mt-2 self-end text-sm text-gray-500 underline transition hover:text-black dark:hover:text-white"
+          >
+            Forgot password?
+          </Link>
+        )}
+
         {state?.error && (
           <p
             role="alert"
