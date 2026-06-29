@@ -59,22 +59,31 @@ export function OrderBuilder({
   products,
   brandingOptions,
   initialBox,
+  initialDraft = null,
 }: {
   products: ProductWithRelations[];
   brandingOptions: BrandingOption[];
   initialBox: SelectedBox | null;
+  /**
+   * A saved draft loaded from the database (resume flow). When present it takes
+   * precedence over sessionStorage and the ?box= entry point: the builder reopens
+   * fully pre-filled, and because its orderId is set, further edits update the
+   * SAME draft order rather than creating a new one.
+   */
+  initialDraft?: BuilderState | null;
 }) {
   const [view, setView] = useState<{ state: BuilderState; step: Step }>(() => ({
-    state: mergeInitialBox(emptyBuilderState, initialBox),
+    state: initialDraft ?? mergeInitialBox(emptyBuilderState, initialBox),
     step: "mode",
   }));
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const hydrated = useRef(false);
 
-  // One-time hydration from sessionStorage (an external store).
+  // One-time hydration. A resumed draft wins; otherwise restore from
+  // sessionStorage (an external store) merged with any ?box= entry point.
   useEffect(() => {
-    const loaded = mergeInitialBox(loadBuilderState(), initialBox);
+    const loaded = initialDraft ?? mergeInitialBox(loadBuilderState(), initialBox);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration
     setView({ state: loaded, step: stepFor(loaded) });
     hydrated.current = true;

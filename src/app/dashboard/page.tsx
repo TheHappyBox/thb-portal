@@ -72,6 +72,12 @@ export default async function DashboardPage() {
           Start a new order →
         </Link>
         <Link
+          href="/orders"
+          className="inline-flex w-fit items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-400 dark:border-gray-700 dark:text-gray-200"
+        >
+          View my orders
+        </Link>
+        <Link
           href="/catalog"
           className="inline-flex w-fit items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-400 dark:border-gray-700 dark:text-gray-200"
         >
