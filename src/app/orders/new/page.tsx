@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/sign-out-button";
 import { OrderBuilder } from "@/components/order-builder/order-builder";
 import { defaultVariant } from "@/lib/pricing";
+import { withAvailableVariants } from "@/lib/order-builder";
 import { loadDraftBuilderState } from "@/lib/order-queries";
 import type { BrandingOption, ProductWithRelations } from "@/types/catalog";
 import type { BuilderState, SelectedBox } from "@/types/order";
@@ -50,7 +51,7 @@ export default async function NewOrderPage({
     throw new Error(`Could not load the catalog: ${error.message}`);
   }
 
-  const products = (productData ?? []) as ProductWithRelations[];
+  const products = withAvailableVariants((productData ?? []) as ProductWithRelations[]);
 
   // Global gift add-on catalog (RLS allows any logged-in user to read it).
   const { data: brandingData, error: brandingError } = await supabase

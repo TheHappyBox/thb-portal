@@ -66,7 +66,8 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  const variants = sortedVariants(product.variants);
+  // Only show purchasable sizes (the Shopify sync retires superseded variants).
+  const variants = sortedVariants(product.variants.filter((v) => v.available));
 
   return (
     <main className="min-h-screen bg-brand-cream">

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/sign-out-button";
+import { isPlatformAdmin } from "@/lib/platform-admin";
 
 /**
  * Gated dashboard. Only logged-in users reach it; everyone else is sent to
@@ -89,6 +90,14 @@ export default async function DashboardPage() {
         >
           Account settings
         </Link>
+        {isPlatformAdmin(user.email) && (
+          <Link
+            href="/admin/sync"
+            className="inline-flex w-fit items-center gap-2 rounded-md border border-dashed border-gray-400 px-4 py-2 text-sm font-medium text-gray-600 transition hover:border-gray-500 dark:border-gray-600 dark:text-gray-300"
+          >
+            Catalog sync (internal)
+          </Link>
+        )}
       </div>
     </main>
   );

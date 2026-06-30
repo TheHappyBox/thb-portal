@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/sign-out-button";
 import { CategoryFilter } from "@/components/category-filter";
 import { ProductCard } from "@/components/product-card";
+import { withAvailableVariants } from "@/lib/order-builder";
 import type { Category, ProductWithRelations } from "@/types/catalog";
 
 export const metadata: Metadata = {
@@ -70,7 +71,7 @@ export default async function CatalogPage({
     throw new Error(`Could not load the catalog: ${productsError.message}`);
   }
 
-  const visibleProducts = (products ?? []) as ProductWithRelations[];
+  const visibleProducts = withAvailableVariants((products ?? []) as ProductWithRelations[]);
 
   return (
     <main className="min-h-screen bg-brand-cream">

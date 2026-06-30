@@ -179,6 +179,18 @@ export function resolveBoxes(
   return views;
 }
 
+/**
+ * Drop unavailable variants from each product. The Shopify sync retires
+ * superseded/sold-out sizes by marking them `available = false` (rather than
+ * deleting them, which would break order history), so the catalog and builder
+ * must only ever surface available sizes.
+ */
+export function withAvailableVariants<P extends { variants: { available: boolean }[] }>(
+  products: P[],
+): P[] {
+  return products.map((p) => ({ ...p, variants: p.variants.filter((v) => v.available) }));
+}
+
 // ---------------------------------------------------------------------------
 // Branding + pricing (one central place; future per-account overrides slot here)
 // ---------------------------------------------------------------------------
