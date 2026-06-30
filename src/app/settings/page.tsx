@@ -6,6 +6,8 @@ import { SignOutButton } from "@/components/sign-out-button";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { CompanyForm, type CompanyInfo } from "@/components/settings/company-form";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
+import { BrandAssetsManager } from "@/components/settings/brand-assets-manager";
+import { loadBrandAssets } from "@/lib/brand-assets";
 
 export const metadata: Metadata = {
   title: "Account settings · The Happy Box",
@@ -44,6 +46,8 @@ export default async function SettingsPage() {
     throw new Error(`Could not load your company: ${accountError?.message ?? "not found"}`);
   }
 
+  const brandAssets = await loadBrandAssets();
+
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-4 py-16">
       <header className="flex items-center justify-between gap-4">
@@ -69,6 +73,13 @@ export default async function SettingsPage() {
         description="Your company's details — used on your orders. This is your company, not The Happy Box."
       >
         <CompanyForm company={account as CompanyInfo} />
+      </Section>
+
+      <Section
+        title="Brand logos"
+        description="Upload your company logos so they're on file for your branded gifts. Stored privately — only your company can see them."
+      >
+        <BrandAssetsManager assets={brandAssets} />
       </Section>
 
       <Section title="Password" description="Set a new password for signing in.">
