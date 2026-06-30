@@ -43,6 +43,10 @@ export interface ProductVariant {
   currency: string;
   sort_order: number;
   is_default: boolean;
+  /** Mirrors Shopify availableForSale; retired/superseded variants are false. */
+  available: boolean;
+  /** Shopify variant id (the stable sync key). Null for portal-native variants. */
+  shopify_variant_id: string | null;
   created_at: string;
 }
 
