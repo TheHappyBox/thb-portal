@@ -23,7 +23,7 @@ export function ProductSizeSelector({
   const [selectedId, setSelectedId] = useState<string | undefined>(initial?.id);
 
   if (sorted.length === 0) {
-    return <p className="text-sm text-brand-muted">Pricing coming soon.</p>;
+    return <p className="text-sm text-muted-foreground">Pricing coming soon.</p>;
   }
 
   const selected = sorted.find((v) => v.id === selectedId) ?? initial;
@@ -32,17 +32,17 @@ export function ProductSizeSelector({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-baseline gap-2">
-        <span className="text-3xl font-semibold text-brand-ink">
+        <span className="text-3xl font-semibold text-foreground">
           {formatPrice(selected.price_cents, selected.currency)}
         </span>
         {!isSingleSize && (
-          <span className="text-sm text-brand-muted">· {selected.name}</span>
+          <span className="text-sm text-muted-foreground">· {selected.name}</span>
         )}
       </div>
 
       {!isSingleSize && (
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-brand-ink">Choose a size</span>
+          <span className="text-sm font-medium text-foreground">Choose a size</span>
           <div
             role="radiogroup"
             aria-label="Box size"
@@ -59,14 +59,14 @@ export function ProductSizeSelector({
                   onClick={() => setSelectedId(v.id)}
                   className={`flex flex-col items-start rounded-lg border px-4 py-3 text-left transition ${
                     active
-                      ? "border-brand-berry bg-brand-cream ring-1 ring-brand-berry"
-                      : "border-brand-sand bg-white hover:border-brand-berry"
+                      ? "bg-primary text-primary-foreground"
+                      : "border-border text-foreground hover:bg-muted"
                   }`}
                 >
-                  <span className="text-sm font-medium text-brand-ink">
+                  <span className="text-sm font-medium">
                     {v.name}
                   </span>
-                  <span className="text-sm text-brand-muted">
+                  <span className="text-sm">
                     {formatPrice(v.price_cents, v.currency)}
                   </span>
                 </button>
@@ -79,7 +79,7 @@ export function ProductSizeSelector({
       {shopifyHandle && (
         <Link
           href={`/orders/new?box=${shopifyHandle}&variant=${selected.id}`}
-          className="mt-1 inline-flex w-fit items-center gap-2 rounded-md bg-brand-berry px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-berry-dark"
+          className="mt-1 inline-flex w-fit items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-primary/90"
         >
           Start an order with this box →
         </Link>

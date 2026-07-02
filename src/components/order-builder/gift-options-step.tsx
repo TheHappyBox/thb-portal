@@ -3,6 +3,8 @@
 import type { BrandingOption } from "@/types/catalog";
 import { brandingForGroup } from "@/lib/order-builder";
 import { formatPrice } from "@/lib/pricing";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 /**
  * "Gift options" step. The buyer chooses one message-card option and one
@@ -33,8 +35,8 @@ export function GiftOptionsStep({
   return (
     <section className="flex flex-col gap-8">
       <div className="flex flex-col gap-1">
-        <h2 className="text-2xl font-semibold text-brand-ink">Gift options</h2>
-        <p className="text-brand-muted">
+        <h2 className="text-2xl font-semibold text-foreground">Gift options</h2>
+        <p className="text-muted-foreground">
           Add optional branding to every gift, and write a message to include. Branding
           is priced per gift.
         </p>
@@ -55,16 +57,15 @@ export function GiftOptionsStep({
       />
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="shared-message" className="text-sm font-medium text-brand-ink">
-          Gift message <span className="font-normal text-brand-muted">(optional)</span>
-        </label>
-        <textarea
+        <Label htmlFor="shared-message" className="text-sm font-medium text-foreground">
+          Gift message <span className="font-normal text-muted-foreground">(optional)</span>
+        </Label>
+        <Textarea
           id="shared-message"
           value={sharedMessage}
           onChange={(e) => onChange({ sharedMessage: e.target.value })}
           rows={3}
           placeholder="A note included with every gift — recipients can be given their own message too."
-          className="rounded-md border border-brand-sand bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-berry"
         />
       </div>
     </section>
@@ -84,7 +85,7 @@ function BrandingGroupPicker({
 }) {
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="text-sm font-semibold text-brand-ink">{legend}</legend>
+      <legend className="text-sm font-semibold text-foreground">{legend}</legend>
       <div role="radiogroup" aria-label={legend} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {options.map((o) => {
           const active = o.id === selectedId;
@@ -97,12 +98,12 @@ function BrandingGroupPicker({
               onClick={() => onSelect(o.id)}
               className={`flex items-center justify-between rounded-lg border px-4 py-3 text-left transition ${
                 active
-                  ? "border-brand-berry bg-brand-cream ring-1 ring-brand-berry"
-                  : "border-brand-sand bg-white hover:border-brand-berry"
+                  ? "border-primary bg-muted/40 ring-1 ring-primary"
+                  : "border-border bg-white hover:border-primary/40"
               }`}
             >
-              <span className="text-sm font-medium text-brand-ink">{o.name}</span>
-              <span className="text-sm text-brand-muted">
+              <span className="text-sm font-medium text-foreground">{o.name}</span>
+              <span className="text-sm text-muted-foreground">
                 {o.price_cents === 0 ? "Included" : `+${formatPrice(o.price_cents, o.currency)}`}
               </span>
             </button>

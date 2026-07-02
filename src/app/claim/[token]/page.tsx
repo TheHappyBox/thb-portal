@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { ClaimForm } from "@/app/claim/[token]/claim-form";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   title: "Your gift · The Happy Box",
@@ -53,51 +54,55 @@ export default async function ClaimPage({
   const claim = data;
 
   return (
-    <main className="min-h-screen bg-brand-cream">
+    <main className="min-h-screen bg-muted/40">
       <div className="mx-auto flex max-w-md flex-col gap-6 px-4 py-12 sm:py-16">
         <div className="flex flex-col gap-2 text-center">
-          <span className="text-sm font-medium uppercase tracking-wide text-brand-gold">
+          <span className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
             The Happy Box
           </span>
-          <h1 className="text-3xl font-semibold text-brand-ink">
+          <h1 className="text-3xl font-semibold text-foreground">
             {claim.company_name} sent you a gift!
           </h1>
-          <p className="text-brand-muted">
-            You&apos;re receiving <strong className="text-brand-ink">{claim.gift_name}</strong>.
+          <p className="text-muted-foreground">
+            You&apos;re receiving <strong className="text-foreground">{claim.gift_name}</strong>.
           </p>
         </div>
 
         {claim.claim_status === "fulfilled" ? (
-          <div className="rounded-xl border border-brand-sand bg-white p-6 text-center">
-            <p className="text-lg font-semibold text-brand-ink">
-              Your gift is on its way! 🎁
-            </p>
-            <p className="mt-1 text-sm text-brand-muted">
-              This gift has shipped, so the address can no longer be changed.
-            </p>
-          </div>
+          <Card>
+            <CardContent className="text-center">
+              <p className="text-lg font-semibold text-foreground">
+                Your gift is on its way! 🎁
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                This gift has shipped, so the address can no longer be changed.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="flex flex-col gap-4 rounded-xl border border-brand-sand bg-white p-6">
-            <p className="text-sm text-brand-muted">
-              Tell us where to send it. You can come back to this link to update your
-              details any time before it ships.
-            </p>
-            <ClaimForm
-              token={token}
-              initial={{
-                fullName: claim.full_name ?? "",
-                addressLine1: claim.address_line1 ?? "",
-                addressLine2: claim.address_line2 ?? "",
-                city: claim.city ?? "",
-                region: claim.region ?? "",
-                postalCode: claim.postal_code ?? "",
-                country: claim.country ?? "",
-              }}
-            />
-          </div>
+          <Card>
+            <CardContent className="flex flex-col gap-4">
+              <p className="text-sm text-muted-foreground">
+                Tell us where to send it. You can come back to this link to update your
+                details any time before it ships.
+              </p>
+              <ClaimForm
+                token={token}
+                initial={{
+                  fullName: claim.full_name ?? "",
+                  addressLine1: claim.address_line1 ?? "",
+                  addressLine2: claim.address_line2 ?? "",
+                  city: claim.city ?? "",
+                  region: claim.region ?? "",
+                  postalCode: claim.postal_code ?? "",
+                  country: claim.country ?? "",
+                }}
+              />
+            </CardContent>
+          </Card>
         )}
 
-        <p className="text-center text-xs text-brand-muted">
+        <p className="text-center text-xs text-muted-foreground">
           Curated gift boxes by The Happy Box.
         </p>
       </div>
@@ -108,15 +113,15 @@ export default async function ClaimPage({
 /** Friendly fallback that leaks no internal detail. */
 function InvalidLink() {
   return (
-    <main className="min-h-screen bg-brand-cream">
+    <main className="min-h-screen bg-muted/40">
       <div className="mx-auto flex max-w-md flex-col gap-4 px-4 py-16 text-center">
-        <span className="text-sm font-medium uppercase tracking-wide text-brand-gold">
+        <span className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
           The Happy Box
         </span>
-        <h1 className="text-2xl font-semibold text-brand-ink">
+        <h1 className="text-2xl font-semibold text-foreground">
           This link isn&apos;t valid
         </h1>
-        <p className="text-brand-muted">
+        <p className="text-muted-foreground">
           This gift link is invalid or has expired. If someone sent you a gift, please
           double-check the link, or ask them to share it again.
         </p>

@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isPlatformAdmin } from "@/lib/platform-admin";
-import { SignOutButton } from "@/components/sign-out-button";
+import { AppShell } from "@/components/app-shell";
 import { SyncButton } from "./sync-button";
 
 export const metadata: Metadata = {
@@ -29,30 +28,22 @@ export default async function CatalogSyncPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-4 py-16">
-      <header className="flex items-center justify-between gap-4">
-        <Link href="/dashboard" className="text-sm text-gray-500 transition hover:text-black dark:hover:text-white">
-          ← Dashboard
-        </Link>
-        <SignOutButton />
-      </header>
+    <AppShell
+      title="Catalog sync"
+      description="Pull the latest active products from Shopify and reconcile them into the portal catalog. Shopify is the source of truth; read-only against Shopify and safe to run repeatedly."
+    >
+      <div className="flex max-w-2xl flex-col gap-6">
+        <span className="w-fit rounded-full bg-brand-navy px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide text-white">
+          Internal · platform
+        </span>
 
-      <div className="flex flex-col gap-1">
-        <span className="text-xs font-medium uppercase tracking-wide text-gray-400">Internal · platform</span>
-        <h1 className="text-3xl font-semibold">Catalog sync</h1>
-        <p className="text-sm text-gray-500">
-          Pull the latest <strong>active</strong> products from Shopify and reconcile them into the
-          portal catalog. Shopify is the source of truth. Read-only against Shopify; safe to run
-          repeatedly.
+        <SyncButton />
+
+        <p className="text-xs text-muted-foreground">
+          Archived/unlisted products are hidden (not deleted). If Shopify returns an error or an
+          implausibly small result, the sync aborts and changes nothing.
         </p>
       </div>
-
-      <SyncButton />
-
-      <p className="text-xs text-gray-400">
-        Archived/unlisted products are hidden (not deleted). If Shopify returns an error or an
-        implausibly small result, the sync aborts and changes nothing.
-      </p>
-    </main>
+    </AppShell>
   );
 }

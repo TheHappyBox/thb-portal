@@ -4,6 +4,16 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import type { AuthFormState } from "@/app/(auth)/actions";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type AuthAction = (
   prevState: AuthFormState,
@@ -13,13 +23,9 @@ type AuthAction = (
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="w-full rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-    >
+    <Button type="submit" disabled={pending} className="w-full">
       {pending ? "Please wait…" : label}
-    </button>
+    </Button>
   );
 }
 
@@ -37,16 +43,16 @@ function Field({
   required?: boolean;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
-      <span className="font-medium">{label}</span>
-      <input
+    <div className="flex flex-col gap-1">
+      <Label htmlFor={name}>{label}</Label>
+      <Input
+        id={name}
         name={name}
         type={type}
         autoComplete={autoComplete}
         required={required}
-        className="rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm outline-none focus:border-black dark:border-gray-700 dark:focus:border-white"
       />
-    </label>
+    </div>
   );
 }
 
@@ -70,70 +76,80 @@ export function AuthForm({
 
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">
-          {isSignup ? "Create your company account" : "Log in"}
-        </h1>
-        <p className="text-sm text-gray-500">
-          {isSignup
-            ? "Sign up to start sending corporate gifts at scale."
-            : "Welcome back to The Happy Box portal."}
-        </p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl">
+            {isSignup ? "Create your company account" : "Log in"}
+          </CardTitle>
+          <CardDescription>
+            {isSignup
+              ? "Sign up to start sending corporate gifts at scale."
+              : "Welcome back to The Happy Box portal."}
+          </CardDescription>
+        </CardHeader>
 
-      <form action={formAction} className="flex flex-col gap-4">
-        {isSignup && (
-          <>
-            <Field label="Company name" name="companyName" autoComplete="organization" />
+        <CardContent>
+          <form action={formAction} className="flex flex-col gap-4">
+            {isSignup && (
+              <>
+                <Field label="Company name" name="companyName" autoComplete="organization" />
+                <Field
+                  label="Your name"
+                  name="fullName"
+                  autoComplete="name"
+                  required={false}
+                />
+              </>
+            )}
+            <Field label="Email" name="email" type="email" autoComplete="email" />
             <Field
-              label="Your name"
-              name="fullName"
-              autoComplete="name"
-              required={false}
+              label="Password"
+              name="password"
+              type="password"
+              autoComplete={isSignup ? "new-password" : "current-password"}
             />
-          </>
-        )}
-        <Field label="Email" name="email" type="email" autoComplete="email" />
-        <Field
-          label="Password"
-          name="password"
-          type="password"
-          autoComplete={isSignup ? "new-password" : "current-password"}
-        />
 
-        {!isSignup && (
-          <Link
-            href="/forgot-password"
-            className="-mt-2 self-end text-sm text-gray-500 underline transition hover:text-black dark:hover:text-white"
-          >
-            Forgot password?
-          </Link>
-        )}
+            {!isSignup && (
+              <Link
+                href="/forgot-password"
+                className="-mt-2 self-end text-sm font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            )}
 
-        {state?.error && (
-          <p
-            role="alert"
-            className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
-          >
-            {state.error}
-          </p>
-        )}
+            {state?.error && (
+              <p
+                role="alert"
+                className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700"
+              >
+                {state.error}
+              </p>
+            )}
 
-        <SubmitButton label={isSignup ? "Create account" : "Log in"} />
-      </form>
+            <SubmitButton label={isSignup ? "Create account" : "Log in"} />
+          </form>
+        </CardContent>
+      </Card>
 
-      <p className="text-center text-sm text-gray-500">
+      <p className="text-center text-sm text-muted-foreground">
         {isSignup ? (
           <>
             Already have an account?{" "}
-            <Link href="/login" className="font-medium underline">
+            <Link
+              href="/login"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
               Log in
             </Link>
           </>
         ) : (
           <>
             New here?{" "}
-            <Link href="/signup" className="font-medium underline">
+            <Link
+              href="/signup"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
               Create a company account
             </Link>
           </>

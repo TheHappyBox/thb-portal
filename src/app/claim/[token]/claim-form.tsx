@@ -2,9 +2,9 @@
 
 import { useActionState } from "react";
 import { submitClaim } from "@/app/claim/actions";
-
-const inputClass =
-  "rounded-md border border-brand-sand bg-white px-3 py-2 text-base text-brand-ink outline-none focus:border-brand-berry";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type State = { ok: boolean; error?: string } | undefined;
 
@@ -46,67 +46,62 @@ export function ClaimForm({
 
   return (
     <form action={action} className="flex flex-col gap-3">
-      <label className="flex flex-col gap-1 text-sm font-medium text-brand-ink">
-        Your name
-        <input
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="fullName">Your name</Label>
+        <Input
+          id="fullName"
           name="fullName"
           required
           autoComplete="name"
           defaultValue={initial.fullName}
-          className={inputClass}
         />
-      </label>
+      </div>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-brand-ink">
-        Address
-        <input
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="addressLine1">Address</Label>
+        <Input
+          id="addressLine1"
           name="addressLine1"
           required
           placeholder="Street address"
           autoComplete="address-line1"
           defaultValue={initial.addressLine1}
-          className={inputClass}
         />
-      </label>
-      <input
+      </div>
+      <Input
         name="addressLine2"
         placeholder="Apartment, suite, etc. (optional)"
         autoComplete="address-line2"
         defaultValue={initial.addressLine2}
-        className={inputClass}
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <input
+        <Input
           name="city"
           required
           placeholder="City"
           autoComplete="address-level2"
           defaultValue={initial.city}
-          className={inputClass}
         />
-        <input
+        <Input
           name="region"
           placeholder="Province / region"
           autoComplete="address-level1"
           defaultValue={initial.region}
-          className={inputClass}
         />
-        <input
+        <Input
           name="postalCode"
           required
           placeholder="Postal code"
           autoComplete="postal-code"
           defaultValue={initial.postalCode}
-          className={inputClass}
         />
-        <input
+        <Input
           name="country"
           required
           placeholder="Country"
           autoComplete="country-name"
           defaultValue={initial.country}
-          className={inputClass}
         />
       </div>
 
@@ -125,13 +120,9 @@ export function ClaimForm({
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="mt-1 rounded-md bg-brand-berry px-5 py-3 text-base font-medium text-white transition hover:bg-brand-berry-dark disabled:opacity-50"
-      >
+      <Button type="submit" disabled={pending} className="mt-1">
         {pending ? "Saving…" : state?.ok ? "Update my address" : "Save my address"}
-      </button>
+      </Button>
     </form>
   );
 }

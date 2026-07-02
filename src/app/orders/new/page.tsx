@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { SignOutButton } from "@/components/sign-out-button";
+import { AppShell } from "@/components/app-shell";
 import { OrderBuilder } from "@/components/order-builder/order-builder";
 import { defaultVariant } from "@/lib/pricing";
 import { withAvailableVariants } from "@/lib/order-builder";
@@ -101,27 +100,8 @@ export default async function NewOrderPage({
   }
 
   return (
-    <main className="min-h-screen bg-brand-cream">
-      <div className="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-10 sm:px-6 lg:py-14">
-        <header className="flex items-center justify-between gap-4">
-          <Link
-            href="/catalog"
-            className="text-sm text-brand-muted transition hover:text-brand-ink"
-          >
-            ← Catalog
-          </Link>
-          <SignOutButton />
-        </header>
-
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium uppercase tracking-wide text-brand-gold">
-            New order
-          </span>
-          <h1 className="text-3xl font-semibold text-brand-ink sm:text-4xl">
-            Build your order
-          </h1>
-        </div>
-
+    <AppShell title="Build your order" description="Choose boxes, add gift options, and add recipients.">
+      <div className="mx-auto max-w-4xl">
         <OrderBuilder
           products={products}
           brandingOptions={brandingOptions}
@@ -129,6 +109,6 @@ export default async function NewOrderPage({
           initialDraft={initialDraft}
         />
       </div>
-    </main>
+    </AppShell>
   );
 }

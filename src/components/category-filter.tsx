@@ -17,8 +17,8 @@ export function CategoryFilter({
   const pill = (active: boolean) =>
     `rounded-full border px-4 py-1.5 text-sm transition ${
       active
-        ? "border-brand-berry bg-brand-berry text-white"
-        : "border-brand-sand bg-white text-brand-muted hover:border-brand-berry hover:text-brand-ink"
+        ? "border-primary bg-primary text-primary-foreground"
+        : "border-border bg-white text-muted-foreground hover:bg-muted"
     }`;
 
   return (

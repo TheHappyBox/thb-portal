@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { startCheckout } from "@/app/checkout/actions";
+import { Button } from "@/components/ui/button";
 
 /**
  * Review-step "Continue to checkout" button. Asks the server to create a Stripe
@@ -32,20 +33,19 @@ export function CheckoutButton({ orderId }: { orderId: string | null }) {
 
   return (
     <div className="flex flex-col items-start gap-2">
-      <button
+      <Button
         type="button"
         onClick={onClick}
         disabled={pending || !orderId}
-        className="rounded-md bg-brand-berry px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-berry-dark disabled:opacity-50"
       >
         {pending ? "Starting secure checkout…" : "Continue to checkout →"}
-      </button>
+      </Button>
       {error ? (
         <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       ) : (
-        <p className="text-xs text-brand-muted">
+        <p className="text-xs text-muted-foreground">
           You&apos;ll be taken to Stripe&apos;s secure checkout to pay. Card details never
           touch The Happy Box.
         </p>

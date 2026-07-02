@@ -29,6 +29,7 @@ import { GiftOptionsStep } from "@/components/order-builder/gift-options-step";
 import { RecipientsStep } from "@/components/order-builder/recipients-step";
 import { OrderSummary } from "@/components/order-builder/order-summary";
 import { OrderTotalBar } from "@/components/order-builder/order-total-bar";
+import { Button } from "@/components/ui/button";
 
 type Step = "mode" | "boxes" | "giftOptions" | "recipients" | "summary";
 
@@ -229,34 +230,69 @@ export function OrderBuilder({
   ];
   const activeIndex = steps.findIndex((s) => s.key === step);
 
+  // Which steps the buyer may jump to. Going BACK to any visited step is always
+  // allowed; going FORWARD is only allowed once that step's prerequisites are met
+  // (so you can move freely without getting bounced out or skipping ahead).
+  const boxesOk = !!state.mode && boxesValidForMode(state.boxes, state.mode);
+  const reachable: Record<Step, boolean> = {
+    mode: true,
+    boxes: !!state.mode,
+    giftOptions: boxesOk,
+    recipients: boxesOk,
+    summary: canContinueRecipients,
+  };
+  const canGoToIndex = (i: number) => i <= activeIndex || reachable[steps[i].key];
+
   return (
     <div className="flex flex-col gap-8">
-      {/* Step indicator */}
-      <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+      {/* Persistent, navigable step indicator */}
+      <nav
+        aria-label="Order steps"
+        className="flex flex-wrap items-center gap-x-1 gap-y-2 rounded-xl border border-border bg-card p-3"
+      >
         {steps.map((s, i) => {
           const active = s.key === step;
           const done = i < activeIndex;
+          const clickable = canGoToIndex(i) && !active;
           return (
-            <li key={s.key} className="flex items-center gap-2">
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                  active
-                    ? "bg-brand-berry text-white"
-                    : done
-                      ? "bg-brand-berry/20 text-brand-berry"
-                      : "bg-brand-sand text-brand-muted"
-                }`}
+            <div key={s.key} className="flex items-center">
+              <button
+                type="button"
+                onClick={() => clickable && goTo(s.key)}
+                disabled={!clickable && !active}
+                aria-current={active ? "step" : undefined}
+                className={`flex items-center gap-2 rounded-full px-2.5 py-1.5 text-sm transition-colors ${
+                  clickable ? "cursor-pointer hover:bg-muted" : "cursor-default"
+                } ${active ? "bg-muted" : ""}`}
               >
-                {i + 1}
-              </span>
-              <span className={active ? "font-medium text-brand-ink" : "text-brand-muted"}>
-                {s.label}
-              </span>
-              {i < steps.length - 1 && <span className="mx-1 text-brand-sand">→</span>}
-            </li>
+                <span
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : done
+                        ? "bg-secondary text-secondary-foreground"
+                        : "border border-border text-muted-foreground"
+                  }`}
+                >
+                  {i + 1}
+                </span>
+                <span
+                  className={
+                    active ? "font-medium text-foreground" : "text-muted-foreground"
+                  }
+                >
+                  {s.label}
+                </span>
+              </button>
+              {i < steps.length - 1 && (
+                <span className="mx-0.5 text-border" aria-hidden="true">
+                  →
+                </span>
+              )}
+            </div>
           );
         })}
-      </ol>
+      </nav>
 
       {showTotalBar && <OrderTotalBar totalCents={totalCents} currency={currency} />}
 
@@ -359,26 +395,17 @@ function FooterNav({
   nextDisabled?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between border-t border-brand-sand pt-4">
+    <div className="flex items-center justify-between border-t border-border pt-4">
       {onBack ? (
-        <button
-          type="button"
-          onClick={onBack}
-          className="text-sm text-brand-muted underline transition hover:text-brand-ink"
-        >
+        <Button type="button" variant="ghost" onClick={onBack}>
           ← Back
-        </button>
+        </Button>
       ) : (
         <span />
       )}
-      <button
-        type="button"
-        onClick={onNext}
-        disabled={nextDisabled}
-        className="rounded-md bg-brand-berry px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-berry-dark disabled:opacity-50"
-      >
+      <Button type="button" onClick={onNext} disabled={nextDisabled}>
         {nextLabel}
-      </button>
+      </Button>
     </div>
   );
 }

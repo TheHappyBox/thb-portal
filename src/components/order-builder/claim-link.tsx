@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 /**
  * Shows a self-claim recipient's claim link with a Copy button, for the buyer to
@@ -29,16 +30,18 @@ export function ClaimLink({ token }: { token: string }) {
 
   return (
     <div className="flex items-center gap-2">
-      <code className="max-w-[14rem] truncate rounded bg-brand-cream px-2 py-1 text-xs text-brand-ink sm:max-w-xs">
+      <code className="max-w-[14rem] truncate rounded bg-muted/40 px-2 py-1 text-xs text-foreground sm:max-w-xs">
         {url}
       </code>
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         onClick={copy}
-        className="shrink-0 rounded-md border border-brand-berry px-2.5 py-1 text-xs font-medium text-brand-berry transition hover:bg-brand-berry hover:text-white"
+        className="shrink-0"
       >
         {copied ? "Copied!" : "Copy link"}
-      </button>
+      </Button>
     </div>
   );
 }

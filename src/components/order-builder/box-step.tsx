@@ -11,6 +11,7 @@ import {
 } from "@/lib/pricing";
 import { resolveBoxes } from "@/lib/order-builder";
 import { ProductImage } from "@/components/product-image";
+import { Button } from "@/components/ui/button";
 
 /**
  * "Choose box(es)" step. Independent of the mode step — it works whether mode was
@@ -89,10 +90,10 @@ export function BoxStep({
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-2xl font-semibold text-brand-ink">
+        <h2 className="text-2xl font-semibold text-foreground">
           {mode === "single" ? "Choose a box" : "Choose your boxes"}
         </h2>
-        <p className="text-brand-muted">
+        <p className="text-muted-foreground">
           {mode === "single"
             ? "Pick one box and a size for your recipient."
             : "Add one or more boxes, each with a size and quantity."}
@@ -101,11 +102,11 @@ export function BoxStep({
 
       {/* Selected boxes — multiple mode shows an editable list. */}
       {mode === "multiple" && selectedViews.length > 0 && (
-        <div className="flex flex-col gap-3 rounded-xl border border-brand-sand bg-white p-4">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-brand-muted">
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-white p-4">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Your boxes
           </h3>
-          <ul className="flex flex-col divide-y divide-brand-sand">
+          <ul className="flex flex-col divide-y divide-border">
             {selectedViews.map((view, index) => {
               const variants = sortedVariants(view.product.variants);
               return (
@@ -113,25 +114,25 @@ export function BoxStep({
                   key={`${view.productId}-${view.variantId}`}
                   className="flex flex-wrap items-center gap-3 py-3"
                 >
-                  <div className="h-12 w-12 overflow-hidden rounded-md border border-brand-sand">
+                  <div className="h-12 w-12 overflow-hidden rounded-md border border-border">
                     <ProductImage src={view.product.image_url} alt={view.product.name} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-brand-ink">
+                    <p className="truncate font-medium text-foreground">
                       {view.product.name}
                     </p>
-                    <p className="text-sm text-brand-muted">
+                    <p className="text-sm text-muted-foreground">
                       {formatPrice(view.variant.price_cents, view.variant.currency)} each
                     </p>
                   </div>
 
                   {variants.length > 1 && (
-                    <label className="text-sm text-brand-muted">
+                    <label className="text-sm text-muted-foreground">
                       <span className="sr-only">Size for {view.product.name}</span>
                       <select
                         value={view.variantId}
                         onChange={(e) => changeVariant(index, e.target.value)}
-                        className="rounded-md border border-brand-sand bg-white px-2 py-1 text-sm text-brand-ink"
+                        className="rounded-md border border-border bg-white px-2 py-1 text-sm text-foreground"
                       >
                         {variants.map((v) => (
                           <option key={v.id} value={v.id}>
@@ -147,32 +148,32 @@ export function BoxStep({
                       type="button"
                       aria-label={`Decrease quantity of ${view.product.name}`}
                       onClick={() => setQuantity(index, view.quantity - 1)}
-                      className="h-7 w-7 rounded-md border border-brand-sand text-brand-ink transition hover:border-brand-berry disabled:opacity-40"
+                      className="h-7 w-7 rounded-md border border-border text-foreground transition hover:border-primary/40 disabled:opacity-40"
                       disabled={view.quantity <= 1}
                     >
                       −
                     </button>
-                    <span className="w-8 text-center text-sm font-medium text-brand-ink">
+                    <span className="w-8 text-center text-sm font-medium text-foreground">
                       {view.quantity}
                     </span>
                     <button
                       type="button"
                       aria-label={`Increase quantity of ${view.product.name}`}
                       onClick={() => setQuantity(index, view.quantity + 1)}
-                      className="h-7 w-7 rounded-md border border-brand-sand text-brand-ink transition hover:border-brand-berry"
+                      className="h-7 w-7 rounded-md border border-border text-foreground transition hover:border-primary/40"
                     >
                       +
                     </button>
                   </div>
 
-                  <div className="w-20 text-right text-sm font-semibold text-brand-ink">
+                  <div className="w-20 text-right text-sm font-semibold text-foreground">
                     {formatPrice(view.lineTotalCents, view.variant.currency)}
                   </div>
 
                   <button
                     type="button"
                     onClick={() => removeBox(index)}
-                    className="text-sm text-brand-muted underline transition hover:text-brand-berry"
+                    className="text-sm text-muted-foreground underline transition hover:text-primary"
                   >
                     Remove
                   </button>
@@ -198,16 +199,16 @@ export function BoxStep({
               key={product.id}
               className={`flex flex-col overflow-hidden rounded-xl border bg-white transition ${
                 isSingleSelected
-                  ? "border-brand-berry ring-1 ring-brand-berry"
-                  : "border-brand-sand"
+                  ? "border-primary ring-1 ring-primary"
+                  : "border-border"
               }`}
             >
               <div className="aspect-[4/3] overflow-hidden">
                 <ProductImage src={product.image_url} alt={product.name} />
               </div>
               <div className="flex flex-1 flex-col gap-2 p-4">
-                <h3 className="font-semibold text-brand-ink">{product.name}</h3>
-                <p className="text-sm font-medium text-brand-berry">
+                <h3 className="font-semibold text-foreground">{product.name}</h3>
+                <p className="text-sm font-medium text-primary">
                   {priceLabel(variants)}
                 </p>
 
@@ -225,8 +226,8 @@ export function BoxStep({
                           }
                           className={`rounded-md border px-2.5 py-1 text-xs transition ${
                             active
-                              ? "border-brand-berry bg-brand-cream text-brand-ink"
-                              : "border-brand-sand text-brand-muted hover:border-brand-berry"
+                              ? "border-primary bg-muted/40 text-foreground"
+                              : "border-border text-muted-foreground hover:border-primary/40"
                           }`}
                         >
                           {v.name}
@@ -236,7 +237,7 @@ export function BoxStep({
                   </div>
                 )}
 
-                <button
+                <Button
                   type="button"
                   onClick={() =>
                     mode === "single"
@@ -244,10 +245,8 @@ export function BoxStep({
                       : addOrIncrement(product.id, selectedVariantId)
                   }
                   disabled={!selectedVariantId}
-                  className={`mt-auto rounded-md px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${
-                    isSingleSelected
-                      ? "bg-brand-berry-dark text-white"
-                      : "bg-brand-berry text-white hover:bg-brand-berry-dark"
+                  className={`mt-auto ${
+                    isSingleSelected ? "bg-primary/90 hover:bg-primary/90" : ""
                   }`}
                 >
                   {mode === "single"
@@ -255,7 +254,7 @@ export function BoxStep({
                       ? "Selected"
                       : "Select this box"
                     : "Add to order"}
-                </button>
+                </Button>
               </div>
             </div>
           );
