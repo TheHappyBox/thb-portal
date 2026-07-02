@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { SignOutButton } from "@/components/sign-out-button";
-import { ProfileForm } from "@/components/settings/profile-form";
-import { CompanyForm, type CompanyInfo } from "@/components/settings/company-form";
-import { ChangePasswordForm } from "@/components/settings/change-password-form";
+import { AppShell } from "@/components/app-shell";
+import { ProfileSection } from "@/components/settings/profile-section";
+import { CompanySection, type CompanyInfo } from "@/components/settings/company-section";
+import { PasswordSection } from "@/components/settings/password-section";
 import { BrandAssetsManager } from "@/components/settings/brand-assets-manager";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { loadBrandAssets } from "@/lib/brand-assets";
 
 export const metadata: Metadata = {
@@ -15,9 +15,10 @@ export const metadata: Metadata = {
 };
 
 /**
- * Gated account settings. A member edits THEIR OWN profile and THEIR OWN
- * company's details — account-scoped by RLS. Auth is re-verified in every save
- * action too (the page gate alone is never trusted).
+ * Gated account settings. Each section shows its details read-only by default and
+ * switches into an edit form (Save/Cancel) on demand. A member edits THEIR OWN
+ * profile and THEIR OWN company — account-scoped by RLS, and every save action
+ * re-verifies auth (the page gate alone is never trusted).
  */
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -49,62 +50,30 @@ export default async function SettingsPage() {
   const brandAssets = await loadBrandAssets();
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-4 py-16">
-      <header className="flex items-center justify-between gap-4">
-        <Link href="/dashboard" className="text-sm text-gray-500 transition hover:text-black dark:hover:text-white">
-          ← Dashboard
-        </Link>
-        <SignOutButton />
-      </header>
+    <AppShell
+      title="Account settings"
+      description="Manage your profile, your company's details, and your password."
+    >
+      <div className="flex max-w-2xl flex-col gap-6">
+        <ProfileSection fullName={profile.full_name ?? ""} email={user.email ?? ""} />
 
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold">Account settings</h1>
-        <p className="text-sm text-gray-500">
-          Manage your profile, your company&apos;s details, and your password.
-        </p>
+        <CompanySection company={account as CompanyInfo} />
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Brand logos</CardTitle>
+            <CardDescription>
+              Upload your company logos so they&apos;re on file for your branded gifts. Stored
+              privately — only your company can see them.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BrandAssetsManager assets={brandAssets} />
+          </CardContent>
+        </Card>
+
+        <PasswordSection />
       </div>
-
-      <Section title="Your profile">
-        <ProfileForm fullName={profile.full_name ?? ""} email={user.email ?? ""} />
-      </Section>
-
-      <Section
-        title="Company info"
-        description="Your company's details — used on your orders. This is your company, not The Happy Box."
-      >
-        <CompanyForm company={account as CompanyInfo} />
-      </Section>
-
-      <Section
-        title="Brand logos"
-        description="Upload your company logos so they're on file for your branded gifts. Stored privately — only your company can see them."
-      >
-        <BrandAssetsManager assets={brandAssets} />
-      </Section>
-
-      <Section title="Password" description="Set a new password for signing in.">
-        <ChangePasswordForm />
-      </Section>
-    </main>
-  );
-}
-
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="flex flex-col gap-4 rounded-lg border border-gray-200 p-5 dark:border-gray-800">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        {description && <p className="text-sm text-gray-500">{description}</p>}
-      </div>
-      {children}
-    </section>
+    </AppShell>
   );
 }

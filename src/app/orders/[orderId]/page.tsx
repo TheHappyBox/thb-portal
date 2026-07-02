@@ -4,10 +4,12 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loadOrderDetail, type OrderDetailRecipient } from "@/lib/order-queries";
 import { formatPrice } from "@/lib/pricing";
-import { SignOutButton } from "@/components/sign-out-button";
+import { AppShell } from "@/components/app-shell";
 import { ProductImage } from "@/components/product-image";
 import { ClaimLink } from "@/components/order-builder/claim-link";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { BrandingOption } from "@/types/catalog";
 
 export const metadata: Metadata = {
@@ -44,59 +46,45 @@ export default async function OrderDetailPage({
   const isDraft = order.status === "draft";
 
   return (
-    <main className="min-h-screen bg-brand-cream">
-      <div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10 sm:px-6 lg:py-14">
-        <header className="flex items-center justify-between gap-4">
-          <Link
-            href="/orders"
-            className="text-sm text-brand-muted transition hover:text-brand-ink"
-          >
-            ← My orders
-          </Link>
-          <SignOutButton />
-        </header>
-
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <OrderStatusBadge status={order.status} />
-              <span className="text-sm text-brand-muted">{formatDate(order.createdAt)}</span>
-            </div>
-            <h1 className="text-2xl font-semibold text-brand-ink sm:text-3xl">Order details</h1>
-          </div>
-          {isDraft && (
-            <Link
-              href={`/orders/new?draft=${order.id}`}
-              className="rounded-md bg-brand-berry px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-berry-dark"
-            >
-              Resume this order →
-            </Link>
-          )}
+    <AppShell
+      title="Order details"
+      actions={
+        isDraft ? (
+          <Button render={<Link href={`/orders/new?draft=${order.id}`} />}>
+            Resume this order
+          </Button>
+        ) : undefined
+      }
+    >
+      <div className="mx-auto flex max-w-2xl flex-col gap-6">
+        <div className="flex items-center gap-2">
+          <OrderStatusBadge status={order.status} />
+          <span className="text-sm text-muted-foreground">{formatDate(order.createdAt)}</span>
         </div>
 
         {/* Boxes */}
-        <section className="flex flex-col gap-3 rounded-xl border border-brand-sand bg-white p-4">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-brand-muted">Boxes</h2>
+        <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Boxes</h2>
           {order.views.length === 0 ? (
-            <p className="text-sm text-brand-muted">No boxes chosen yet.</p>
+            <p className="text-sm text-muted-foreground">No boxes chosen yet.</p>
           ) : (
-            <ul className="flex flex-col divide-y divide-brand-sand">
+            <ul className="flex flex-col divide-y divide-border">
               {order.views.map((view) => (
                 <li
                   key={`${view.productId}-${view.variantId}`}
                   className="flex items-center gap-3 py-3"
                 >
-                  <div className="h-12 w-12 overflow-hidden rounded-md border border-brand-sand">
+                  <div className="h-12 w-12 overflow-hidden rounded-md border border-border">
                     <ProductImage src={view.product.image_url} alt={view.product.name} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-brand-ink">{view.product.name}</p>
-                    <p className="text-sm text-brand-muted">
+                    <p className="truncate font-medium text-foreground">{view.product.name}</p>
+                    <p className="text-sm text-muted-foreground">
                       {view.variant.name} · {formatPrice(view.variant.price_cents, order.currency)}{" "}
                       × {view.quantity}
                     </p>
                   </div>
-                  <div className="text-sm font-semibold text-brand-ink">
+                  <div className="text-sm font-semibold text-foreground">
                     {formatPrice(view.lineTotalCents, order.currency)}
                   </div>
                 </li>
@@ -106,8 +94,8 @@ export default async function OrderDetailPage({
         </section>
 
         {/* Gift options */}
-        <section className="flex flex-col gap-3 rounded-xl border border-brand-sand bg-white p-4">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-brand-muted">
+        <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Gift options
           </h2>
           <dl className="flex flex-col gap-1 text-sm">
@@ -115,21 +103,21 @@ export default async function OrderDetailPage({
             <Row term="Box branding" value={brandingLabel(order.boxBranding, order.currency)} />
           </dl>
           {order.sharedMessage?.trim() && (
-            <p className="rounded-md bg-brand-cream px-3 py-2 text-sm italic text-brand-ink">
+            <p className="rounded-md bg-muted/40 px-3 py-2 text-sm italic text-foreground">
               “{order.sharedMessage.trim()}”
             </p>
           )}
         </section>
 
         {/* Recipients */}
-        <section className="flex flex-col gap-3 rounded-xl border border-brand-sand bg-white p-4">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-brand-muted">
+        <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Recipients ({order.recipients.length})
           </h2>
           {order.recipients.length === 0 ? (
-            <p className="text-sm text-brand-muted">No recipients added yet.</p>
+            <p className="text-sm text-muted-foreground">No recipients added yet.</p>
           ) : (
-            <ul className="flex flex-col divide-y divide-brand-sand">
+            <ul className="flex flex-col divide-y divide-border">
               {order.recipients.map((r, i) => (
                 <RecipientItem key={i} recipient={r} />
               ))}
@@ -138,16 +126,16 @@ export default async function OrderDetailPage({
         </section>
 
         {/* Total */}
-        <div className="flex items-center justify-between rounded-xl border border-brand-sand bg-white p-4">
-          <span className="font-semibold text-brand-ink">
+        <div className="flex items-center justify-between rounded-xl border border-border bg-card p-4">
+          <span className="font-semibold text-foreground">
             {order.status === "paid" ? "Total paid" : "Order total"}
           </span>
-          <span className="text-xl font-semibold text-brand-ink">
+          <span className="text-xl font-semibold text-foreground">
             {formatPrice(order.totalCents, order.currency)}
           </span>
         </div>
       </div>
-    </main>
+    </AppShell>
   );
 }
 
@@ -156,10 +144,10 @@ function RecipientItem({ recipient }: { recipient: OrderDetailRecipient }) {
   return (
     <li className="flex flex-wrap items-center justify-between gap-2 py-3">
       <div className="flex min-w-0 flex-col">
-        <span className="truncate font-medium text-brand-ink">
+        <span className="truncate font-medium text-foreground">
           {recipient.fullName || "Unnamed recipient"}
         </span>
-        <span className="text-xs text-brand-muted">
+        <span className="text-xs text-muted-foreground">
           {recipient.selfClaim
             ? claimed
               ? "Self-claim · address provided"
@@ -170,13 +158,7 @@ function RecipientItem({ recipient }: { recipient: OrderDetailRecipient }) {
         </span>
       </div>
       <div className="flex items-center gap-2">
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-            claimed ? "bg-brand-berry/10 text-brand-berry" : "bg-brand-sand text-brand-muted"
-          }`}
-        >
-          {claimed ? "Claimed" : "Invited"}
-        </span>
+        <Badge variant={claimed ? "default" : "secondary"}>{claimed ? "Claimed" : "Invited"}</Badge>
         {recipient.selfClaim && recipient.claimToken && (
           <ClaimLink token={recipient.claimToken} />
         )}
@@ -195,8 +177,8 @@ function brandingLabel(option: BrandingOption | undefined, currency: string): st
 function Row({ term, value }: { term: string; value: string }) {
   return (
     <div className="flex items-center justify-between">
-      <dt className="text-brand-muted">{term}</dt>
-      <dd className="text-brand-ink">{value}</dd>
+      <dt className="text-muted-foreground">{term}</dt>
+      <dd className="text-foreground">{value}</dd>
     </div>
   );
 }

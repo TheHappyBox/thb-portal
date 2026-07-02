@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { SignOutButton } from "@/components/sign-out-button";
+import { AppShell } from "@/components/app-shell";
 import { CategoryFilter } from "@/components/category-filter";
 import { ProductCard } from "@/components/product-card";
 import { withAvailableVariants } from "@/lib/order-builder";
@@ -74,48 +73,26 @@ export default async function CatalogPage({
   const visibleProducts = withAvailableVariants((products ?? []) as ProductWithRelations[]);
 
   return (
-    <main className="min-h-screen bg-brand-cream">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:py-14">
-        <header className="flex items-center justify-between gap-4">
-          <Link
-            href="/dashboard"
-            className="text-sm text-brand-muted transition hover:text-brand-ink"
-          >
-            ← Dashboard
-          </Link>
-          <SignOutButton />
-        </header>
+    <AppShell
+      title="Curated gift boxes"
+      description="Thoughtfully assembled boxes to delight your team and clients — order in bulk, choose a size, and make every gift feel personal."
+    >
+      <CategoryFilter
+        categories={(categories ?? []) as Pick<Category, "name" | "slug">[]}
+        activeSlug={activeSlug}
+      />
 
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium uppercase tracking-wide text-brand-gold">
-            The Happy Box
-          </span>
-          <h1 className="text-3xl font-semibold text-brand-ink sm:text-4xl">
-            Curated gift boxes
-          </h1>
-          <p className="max-w-2xl text-brand-muted">
-            Thoughtfully assembled boxes to delight your team and clients — order
-            in bulk, choose a size, and make every gift feel personal.
-          </p>
+      {visibleProducts.length === 0 ? (
+        <p className="mt-6 rounded-lg border border-dashed border-border bg-card p-8 text-center text-muted-foreground">
+          No boxes in this category yet. Try another category.
+        </p>
+      ) : (
+        <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {visibleProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
         </div>
-
-        <CategoryFilter
-          categories={(categories ?? []) as Pick<Category, "name" | "slug">[]}
-          activeSlug={activeSlug}
-        />
-
-        {visibleProducts.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-brand-sand bg-white p-8 text-center text-brand-muted">
-            No boxes in this category yet. Try another category.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {visibleProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        )}
-      </div>
-    </main>
+      )}
+    </AppShell>
   );
 }

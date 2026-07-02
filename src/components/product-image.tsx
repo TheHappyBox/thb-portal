@@ -20,12 +20,12 @@ export function ProductImage({
   return (
     <div
       aria-hidden="true"
-      className={`flex h-full w-full items-center justify-center bg-gradient-to-br from-brand-sand to-brand-cream ${className}`}
+      className={`flex h-full w-full items-center justify-center bg-gradient-to-br from-muted to-muted/40 ${className}`}
     >
       <svg
         viewBox="0 0 24 24"
         fill="none"
-        className="h-12 w-12 text-brand-berry/40"
+        className="h-12 w-12 text-primary/40"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"

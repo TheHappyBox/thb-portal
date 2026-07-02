@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { SignOutButton } from "@/components/sign-out-button";
-import { isPlatformAdmin } from "@/lib/platform-admin";
+import { AppShell } from "@/components/app-shell";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 /**
- * Gated dashboard. Only logged-in users reach it; everyone else is sent to
- * /login. It reads the user's company (via RLS, so only their own account is
- * visible) and shows the company name — the end-to-end proof that auth + the
- * database + RLS all work together.
+ * Gated dashboard landing. Wrapped in the shared shell (header/nav + sign-out).
+ * Only logged-in users reach it; everyone else is sent to /login.
  */
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -27,9 +26,7 @@ export default async function DashboardPage() {
     .select("full_name, role, account_id")
     .eq("id", user.id)
     .single();
-
   if (profileError) {
-    // Surface the problem rather than failing silently.
     throw new Error(`Could not load your profile: ${profileError.message}`);
   }
 
@@ -38,7 +35,6 @@ export default async function DashboardPage() {
     .select("name")
     .eq("id", profile.account_id)
     .single();
-
   if (accountError) {
     throw new Error(`Could not load your company: ${accountError.message}`);
   }
@@ -46,59 +42,35 @@ export default async function DashboardPage() {
   const companyName = account?.name ?? "your company";
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-4 py-16">
-      <header className="flex items-center justify-between">
-        <span className="text-sm text-gray-500">The Happy Box · Portal</span>
-        <SignOutButton />
-      </header>
+    <AppShell
+      title={`Welcome, ${companyName}`}
+      description={`You're signed in as ${profile?.full_name || user.email}${
+        profile?.role ? ` (${profile.role})` : ""
+      }.`}
+    >
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-wrap gap-3">
+          <Button render={<Link href="/orders/new" />}>Start a new order</Button>
+          <Button variant="outline" render={<Link href="/orders" />}>
+            View my orders
+          </Button>
+          <Button variant="outline" render={<Link href="/catalog" />}>
+            Browse the catalog
+          </Button>
+          <Button variant="outline" render={<Link href="/settings" />}>
+            Account settings
+          </Button>
+        </div>
 
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold">Welcome, {companyName}</h1>
-        <p className="text-sm text-gray-500">
-          You&apos;re signed in as {profile?.full_name || user.email}
-          {profile?.role ? ` (${profile.role})` : ""}.
-        </p>
+        <Card className="max-w-xl bg-brand-yellow-soft/40">
+          <CardHeader>
+            <CardTitle>Your gifting dashboard</CardTitle>
+            <CardDescription className="text-brand-navy/70">
+              Build orders, manage recipients, and track deliveries — all in one place.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
-
-      <p className="rounded-md border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-gray-700">
-        This is your gifting dashboard. Building orders and managing recipients
-        will live here as we build them out.
-      </p>
-
-      <div className="flex flex-wrap gap-3">
-        <Link
-          href="/orders/new"
-          className="inline-flex w-fit items-center gap-2 rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-        >
-          Start a new order →
-        </Link>
-        <Link
-          href="/orders"
-          className="inline-flex w-fit items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-400 dark:border-gray-700 dark:text-gray-200"
-        >
-          View my orders
-        </Link>
-        <Link
-          href="/catalog"
-          className="inline-flex w-fit items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-400 dark:border-gray-700 dark:text-gray-200"
-        >
-          Browse the catalog
-        </Link>
-        <Link
-          href="/settings"
-          className="inline-flex w-fit items-center gap-2 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-400 dark:border-gray-700 dark:text-gray-200"
-        >
-          Account settings
-        </Link>
-        {isPlatformAdmin(user.email) && (
-          <Link
-            href="/admin/sync"
-            className="inline-flex w-fit items-center gap-2 rounded-md border border-dashed border-gray-400 px-4 py-2 text-sm font-medium text-gray-600 transition hover:border-gray-500 dark:border-gray-600 dark:text-gray-300"
-          >
-            Catalog sync (internal)
-          </Link>
-        )}
-      </div>
-    </main>
+    </AppShell>
   );
 }

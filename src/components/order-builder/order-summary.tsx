@@ -7,6 +7,7 @@ import { brandingById, orderTotalCents, resolveBoxes } from "@/lib/order-builder
 import { ProductImage } from "@/components/product-image";
 import { ClaimLink } from "@/components/order-builder/claim-link";
 import { CheckoutButton } from "@/components/order-builder/checkout-button";
+import { Button } from "@/components/ui/button";
 
 /**
  * Review step: recaps mode, boxes, gift options (branding + shared message), and
@@ -46,30 +47,30 @@ export function OrderSummary({
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h2 className="text-2xl font-semibold text-brand-ink">Review your order</h2>
-        <p className="text-brand-muted">Here&apos;s everything you&apos;ve put together.</p>
+        <h2 className="text-2xl font-semibold text-foreground">Review your order</h2>
+        <p className="text-muted-foreground">Here&apos;s everything you&apos;ve put together.</p>
       </div>
 
       <SummaryCard label="Recipients" onEdit={onEditMode}>
-        <p className="font-medium text-brand-ink">{modeLabel}</p>
+        <p className="font-medium text-foreground">{modeLabel}</p>
       </SummaryCard>
 
       {/* Boxes */}
       <SummaryCard label="Boxes" onEdit={onEditBoxes}>
-        <ul className="flex flex-col divide-y divide-brand-sand">
+        <ul className="flex flex-col divide-y divide-border">
           {views.map((view) => (
             <li key={`${view.productId}-${view.variantId}`} className="flex items-center gap-3 py-3">
-              <div className="h-12 w-12 overflow-hidden rounded-md border border-brand-sand">
+              <div className="h-12 w-12 overflow-hidden rounded-md border border-border">
                 <ProductImage src={view.product.image_url} alt={view.product.name} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-brand-ink">{view.product.name}</p>
-                <p className="text-sm text-brand-muted">
+                <p className="truncate font-medium text-foreground">{view.product.name}</p>
+                <p className="text-sm text-muted-foreground">
                   {view.variant.name} ·{" "}
                   {formatPrice(view.variant.price_cents, view.variant.currency)} × {view.quantity}
                 </p>
               </div>
-              <div className="text-sm font-semibold text-brand-ink">
+              <div className="text-sm font-semibold text-foreground">
                 {formatPrice(view.lineTotalCents, view.variant.currency)}
               </div>
             </li>
@@ -92,7 +93,7 @@ export function OrderSummary({
           )}
         </dl>
         {state.sharedMessage.trim() && (
-          <p className="mt-2 rounded-md bg-brand-cream px-3 py-2 text-sm italic text-brand-ink">
+          <p className="mt-2 rounded-md bg-muted/40 px-3 py-2 text-sm italic text-foreground">
             “{state.sharedMessage.trim()}”
           </p>
         )}
@@ -104,28 +105,28 @@ export function OrderSummary({
         onEdit={onEditRecipients}
       >
         {state.recipients.length === 0 ? (
-          <p className="text-sm text-brand-muted">None added yet.</p>
+          <p className="text-sm text-muted-foreground">None added yet.</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-brand-sand text-sm">
+          <ul className="flex flex-col divide-y divide-border text-sm">
             {state.recipients.slice(0, 8).map((r, i) => (
               <li
                 key={i}
                 className="flex flex-wrap items-center justify-between gap-2 py-2"
               >
-                <span className="text-brand-ink">{r.fullName || "Unnamed recipient"}</span>
+                <span className="text-foreground">{r.fullName || "Unnamed recipient"}</span>
                 {r.selfClaim ? (
                   r.claimToken ? (
                     <ClaimLink token={r.claimToken} />
                   ) : (
-                    <span className="text-xs text-brand-muted">Self-claim link</span>
+                    <span className="text-xs text-muted-foreground">Self-claim link</span>
                   )
                 ) : (
-                  <span className="text-xs text-brand-muted">Address provided</span>
+                  <span className="text-xs text-muted-foreground">Address provided</span>
                 )}
               </li>
             ))}
             {state.recipients.length > 8 && (
-              <li className="py-2 text-xs text-brand-muted">
+              <li className="py-2 text-xs text-muted-foreground">
                 + {state.recipients.length - 8} more
               </li>
             )}
@@ -134,9 +135,9 @@ export function OrderSummary({
       </SummaryCard>
 
       {/* Total */}
-      <div className="flex items-center justify-between rounded-xl border border-brand-sand bg-white p-4">
-        <span className="font-semibold text-brand-ink">Order total</span>
-        <span className="text-xl font-semibold text-brand-ink">
+      <div className="flex items-center justify-between rounded-xl border border-border bg-white p-4">
+        <span className="font-semibold text-foreground">Order total</span>
+        <span className="text-xl font-semibold text-foreground">
           {formatPrice(total, currency)}
         </span>
       </div>
@@ -164,16 +165,12 @@ function SummaryCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-brand-sand bg-white p-4">
+    <div className="flex flex-col gap-3 rounded-xl border border-border bg-white p-4">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium uppercase tracking-wide text-brand-muted">{label}</p>
-        <button
-          type="button"
-          onClick={onEdit}
-          className="text-sm text-brand-berry underline transition hover:text-brand-berry-dark"
-        >
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+        <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
           Edit
-        </button>
+        </Button>
       </div>
       {children}
     </div>
@@ -183,8 +180,8 @@ function SummaryCard({
 function Row({ term, value }: { term: string; value: string }) {
   return (
     <div className="flex items-center justify-between">
-      <dt className="text-brand-muted">{term}</dt>
-      <dd className="text-brand-ink">{value}</dd>
+      <dt className="text-muted-foreground">{term}</dt>
+      <dd className="text-foreground">{value}</dd>
     </div>
   );
 }

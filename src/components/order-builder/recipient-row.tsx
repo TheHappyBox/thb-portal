@@ -3,9 +3,9 @@
 import type { RecipientDraft } from "@/types/order";
 import { recipientIssues } from "@/lib/order-builder";
 import { AddressFields } from "@/components/order-builder/address-fields";
-
-const inputClass =
-  "rounded-md border border-brand-sand bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-berry";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 /**
  * One recipient's editable details — name, optional email, the address-vs-
@@ -30,16 +30,16 @@ export function RecipientRow({
   const issues = recipientIssues(recipient);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-brand-sand bg-white p-4">
+    <div className="flex flex-col gap-3 rounded-xl border border-border bg-white p-4">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-brand-ink">
+        <span className="text-sm font-semibold text-foreground">
           {index ? `Recipient ${index}` : "Recipient"}
         </span>
         {onRemove && (
           <button
             type="button"
             onClick={onRemove}
-            className="text-sm text-brand-muted underline transition hover:text-brand-berry"
+            className="text-sm text-muted-foreground underline transition hover:text-primary"
           >
             Remove
           </button>
@@ -47,15 +47,13 @@ export function RecipientRow({
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <input
-          className={inputClass}
+        <Input
           placeholder="Full name"
           autoComplete="name"
           value={recipient.fullName}
           onChange={(e) => onPatch({ fullName: e.target.value })}
         />
-        <input
-          className={inputClass}
+        <Input
           type="email"
           placeholder="Email (optional)"
           autoComplete="email"
@@ -64,22 +62,21 @@ export function RecipientRow({
         />
       </div>
 
-      <label className="flex items-center gap-2 text-sm text-brand-ink">
+      <Label className="flex items-center gap-2 text-sm text-foreground">
         <input
           type="checkbox"
           checked={recipient.selfClaim}
           onChange={(e) => onPatch({ selfClaim: e.target.checked })}
-          className="h-4 w-4 accent-brand-berry"
+          className="h-4 w-4 accent-primary"
         />
         Send them a link to add their own address
-      </label>
+      </Label>
 
       {!recipient.selfClaim && (
         <AddressFields recipient={recipient} onPatch={onPatch} />
       )}
 
-      <textarea
-        className={inputClass}
+      <Textarea
         rows={2}
         placeholder={
           sharedMessage

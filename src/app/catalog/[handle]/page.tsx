@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { SignOutButton } from "@/components/sign-out-button";
+import { AppShell } from "@/components/app-shell";
 import { ProductImage } from "@/components/product-image";
 import { ProductSizeSelector } from "@/components/product-size-selector";
 import { sortedVariants } from "@/lib/pricing";
@@ -70,50 +69,33 @@ export default async function ProductDetailPage({
   const variants = sortedVariants(product.variants.filter((v) => v.available));
 
   return (
-    <main className="min-h-screen bg-brand-cream">
-      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6 lg:py-14">
-        <header className="flex items-center justify-between gap-4">
-          <Link
-            href="/catalog"
-            className="text-sm text-brand-muted transition hover:text-brand-ink"
-          >
-            ← Back to catalog
-          </Link>
-          <SignOutButton />
-        </header>
+    <AppShell>
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border">
+          <ProductImage src={product.image_url} alt={product.name} />
+          {product.is_featured && (
+            <span className="absolute left-3 top-3 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground shadow-sm">
+              Featured
+            </span>
+          )}
+        </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-brand-sand">
-            <ProductImage src={product.image_url} alt={product.name} />
-            {product.is_featured && (
-              <span className="absolute left-3 top-3 rounded-full bg-brand-gold px-2.5 py-1 text-xs font-medium text-white shadow-sm">
-                Featured
-              </span>
-            )}
-          </div>
+        <div className="flex flex-col gap-5">
+          {product.category?.name && (
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {product.category.name}
+            </span>
+          )}
+          <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">
+            {product.name}
+          </h1>
+          {product.description && <p className="text-muted-foreground">{product.description}</p>}
 
-          <div className="flex flex-col gap-5">
-            {product.category?.name && (
-              <span className="text-xs font-medium uppercase tracking-wide text-brand-muted">
-                {product.category.name}
-              </span>
-            )}
-            <h1 className="text-3xl font-semibold text-brand-ink sm:text-4xl">
-              {product.name}
-            </h1>
-            {product.description && (
-              <p className="text-brand-muted">{product.description}</p>
-            )}
-
-            <div className="mt-2 rounded-xl border border-brand-sand bg-white p-5">
-              <ProductSizeSelector
-                variants={variants}
-                shopifyHandle={product.shopify_handle}
-              />
-            </div>
+          <div className="mt-2 rounded-xl border border-border bg-card p-5">
+            <ProductSizeSelector variants={variants} shopifyHandle={product.shopify_handle} />
           </div>
         </div>
       </div>
-    </main>
+    </AppShell>
   );
 }

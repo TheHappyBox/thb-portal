@@ -14,14 +14,14 @@ export function OrderTotalBar({
   note?: string;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-brand-sand bg-white px-4 py-3">
+    <div className="flex items-center justify-between rounded-xl border border-border bg-white px-4 py-3">
       <div className="flex flex-col">
-        <span className="text-xs font-medium uppercase tracking-wide text-brand-muted">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Order total
         </span>
-        {note && <span className="text-xs text-brand-muted">{note}</span>}
+        {note && <span className="text-xs text-muted-foreground">{note}</span>}
       </div>
-      <span className="text-xl font-semibold text-brand-ink">
+      <span className="text-xl font-semibold text-foreground">
         {formatPrice(totalCents, currency)}
       </span>
     </div>

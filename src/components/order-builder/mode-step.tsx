@@ -30,10 +30,10 @@ export function ModeStep({
   return (
     <section className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <h2 className="text-2xl font-semibold text-brand-ink">
+        <h2 className="text-2xl font-semibold text-foreground">
           Who is this order for?
         </h2>
-        <p className="text-brand-muted">
+        <p className="text-muted-foreground">
           Choose whether you&apos;re sending to one person or a group. You can
           change this later.
         </p>
@@ -55,14 +55,14 @@ export function ModeStep({
               onClick={() => onChoose(o.value)}
               className={`flex flex-col items-start gap-2 rounded-xl border p-5 text-left transition ${
                 active
-                  ? "border-brand-berry bg-brand-cream ring-1 ring-brand-berry"
-                  : "border-brand-sand bg-white hover:border-brand-berry hover:shadow-sm"
+                  ? "border-primary bg-muted/40 ring-1 ring-primary"
+                  : "border-border bg-white hover:border-primary/40 hover:shadow-sm"
               }`}
             >
-              <span className="text-lg font-semibold text-brand-ink">
+              <span className="text-lg font-semibold text-foreground">
                 {o.title}
               </span>
-              <span className="text-sm text-brand-muted">{o.blurb}</span>
+              <span className="text-sm text-muted-foreground">{o.blurb}</span>
             </button>
           );
         })}

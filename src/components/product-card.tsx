@@ -14,12 +14,12 @@ export function ProductCard({ product }: { product: ProductWithRelations }) {
   const defaultV = defaultVariant(variants);
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-xl border border-brand-sand bg-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-ink/5">
+    <div className="group flex flex-col overflow-hidden rounded-xl border border-border bg-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/5">
       <Link href={`/catalog/${product.shopify_handle}`} className="flex flex-1 flex-col">
         <div className="relative aspect-[4/3] overflow-hidden">
           <ProductImage src={product.image_url} alt={product.name} />
           {product.is_featured && (
-            <span className="absolute left-3 top-3 rounded-full bg-brand-gold px-2.5 py-1 text-xs font-medium text-white shadow-sm">
+            <span className="absolute left-3 top-3 rounded-full bg-muted-foreground px-2.5 py-1 text-xs font-medium text-white shadow-sm">
               Featured
             </span>
           )}
@@ -27,17 +27,17 @@ export function ProductCard({ product }: { product: ProductWithRelations }) {
 
         <div className="flex flex-1 flex-col gap-2 p-4">
           {product.category?.name && (
-            <span className="text-xs font-medium uppercase tracking-wide text-brand-muted">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {product.category.name}
             </span>
           )}
-          <h3 className="text-lg font-semibold text-brand-ink">{product.name}</h3>
+          <h3 className="text-lg font-semibold text-foreground">{product.name}</h3>
           {product.description && (
-            <p className="line-clamp-2 text-sm text-brand-muted">
+            <p className="line-clamp-2 text-sm text-muted-foreground">
               {product.description}
             </p>
           )}
-          <p className="mt-auto pt-2 text-base font-semibold text-brand-berry">
+          <p className="mt-auto pt-2 text-base font-semibold text-primary">
             {priceLabel(variants)}
           </p>
         </div>
@@ -47,7 +47,7 @@ export function ProductCard({ product }: { product: ProductWithRelations }) {
         <div className="px-4 pb-4">
           <Link
             href={`/orders/new?box=${product.shopify_handle}&variant=${defaultV.id}`}
-            className="block rounded-md border border-brand-berry px-4 py-2 text-center text-sm font-medium text-brand-berry transition hover:bg-brand-berry hover:text-white"
+            className="block rounded-md border border-primary px-4 py-2 text-center text-sm font-medium text-primary transition hover:bg-primary hover:text-white"
           >
             Start an order with this box
           </Link>
