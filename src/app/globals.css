@@ -72,9 +72,10 @@
 
   --radius: 0.75rem;
 
-  /* Fonts (defined in layout.tsx via next/font). */
-  --font-sans: var(--font-body); /* Montserrat — substitute for Glacial Indifference */
-  --font-heading: var(--font-display); /* Fraunces — substitute for Recoleta */
+  /* Fonts (defined in layout.tsx via next/font). Single family — Manrope — for
+     both body and headings; hierarchy comes from weight + size. */
+  --font-sans: var(--font-manrope);
+  --font-heading: var(--font-manrope);
 
   /* Neutral chart/sidebar defaults (kept from shadcn init; unused for now). */
   --chart-1: #ffc63b;

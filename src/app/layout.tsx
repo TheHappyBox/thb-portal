@@ -1,23 +1,16 @@
 import type { Metadata } from "next";
-import { Fraunces, Montserrat } from "next/font/google";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
 /**
- * Brand fonts. These are free, web-licensed substitutes chosen as the closest
- * matches to The Happy Box's brand fonts, self-hosted via next/font:
- *   - Fraunces   → stand-in for Recoleta (warm premium serif) for HEADINGS.
- *   - Montserrat → stand-in for Glacial Indifference (geometric sans) for BODY.
- * Swap in the licensed originals later by replacing these with next/font/local.
+ * Brand font: Manrope — a single variable family used for BOTH headings and body,
+ * self-hosted via next/font. Hierarchy comes from weight + size, not a second
+ * family. Exposed as the --font-manrope CSS variable and wired to the theme's
+ * --font-sans / --font-heading tokens in globals.css.
  */
-const display = Fraunces({
-  variable: "--font-display",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const body = Montserrat({
-  variable: "--font-body",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
   display: "swap",
 });
@@ -33,10 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${display.variable} ${body.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${manrope.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         {children}
         <Toaster />
