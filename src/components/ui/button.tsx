@@ -44,11 +44,18 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  render,
+  nativeButton,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
   return (
     <ButtonPrimitive
       data-slot="button"
+      render={render}
+      // When rendered as a custom element (e.g. `render={<Link/>}` → an <a>), it
+      // isn't a native <button>. Tell Base UI so, which keeps a11y correct and
+      // silences its nativeButton warning. A plain Button stays a native button.
+      nativeButton={nativeButton ?? render === undefined}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
