@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LogOut,
   Package,
+  RefreshCw,
   Settings,
   Store,
   Users,
@@ -25,11 +26,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 /**
- * Dashboard-only left sidebar — a faithful take on the design's nav, recolored to
- * The Happy Box brand. Real destinations (Dashboard / Catalog / Orders / Settings)
- * are live; not-yet-built areas (Recipients / Team / Reports) are shown disabled
- * with a "Soon" tag rather than faked. NOTE: this is a POC layout scoped to the
- * dashboard; the rest of the app still uses the top-nav shell.
+ * The app-wide left sidebar. Real destinations (Dashboard / Catalog / Orders /
+ * Settings, plus the platform-admin-only Catalog sync) are live; not-yet-built
+ * areas (Recipients / Team / Reports) are shown disabled with a "Soon" tag rather
+ * than faked. Rendered by the shared AppShell on every authenticated page.
  */
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -43,16 +43,18 @@ const SOON = [
   { label: "Reports", icon: BarChart3 },
 ];
 
-export function DashboardSidebar({
+export function AppSidebar({
   userName,
   companyName,
   email,
   ordersBadge,
+  isAdmin,
 }: {
   userName: string;
   companyName: string;
   email: string;
   ordersBadge: number;
+  isAdmin: boolean;
 }) {
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
@@ -63,6 +65,13 @@ export function DashboardSidebar({
       .slice(0, 2)
       .join("")
       .toUpperCase() || "?";
+
+  const navLinkClass = (active: boolean) =>
+    `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] transition-colors ${
+      active
+        ? "bg-secondary font-medium text-secondary-foreground"
+        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+    }`;
 
   return (
     <aside className="sticky top-0 flex h-screen w-64 flex-none flex-col border-r border-border bg-card p-3.5">
@@ -89,11 +98,7 @@ export function DashboardSidebar({
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] transition-colors ${
-                active
-                  ? "bg-secondary font-medium text-secondary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
+              className={navLinkClass(active)}
             >
               <Icon className="size-[17px]" />
               {item.label}
@@ -126,16 +131,26 @@ export function DashboardSidebar({
         })}
       </nav>
 
-      {/* Bottom: settings + account */}
+      {/* Bottom: admin (gated) + settings + account */}
       <div className="mt-auto flex flex-col gap-0.5">
+        {isAdmin && (
+          <Link
+            href="/admin/sync"
+            aria-current={isActive("/admin/sync") ? "page" : undefined}
+            className={navLinkClass(isActive("/admin/sync"))}
+          >
+            <RefreshCw className="size-[17px]" />
+            Catalog sync
+            <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              Admin
+            </span>
+          </Link>
+        )}
+
         <Link
           href="/settings"
           aria-current={isActive("/settings") ? "page" : undefined}
-          className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] transition-colors ${
-            isActive("/settings")
-              ? "bg-secondary font-medium text-secondary-foreground"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"
-          }`}
+          className={navLinkClass(isActive("/settings"))}
         >
           <Settings className="size-[17px]" />
           Settings
@@ -150,9 +165,7 @@ export function DashboardSidebar({
               <span className="block truncate text-[12.5px] font-semibold text-foreground">
                 {userName || "Your account"}
               </span>
-              <span className="block truncate text-[11px] text-muted-foreground">
-                {companyName}
-              </span>
+              <span className="block truncate text-[11px] text-muted-foreground">{companyName}</span>
             </span>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">

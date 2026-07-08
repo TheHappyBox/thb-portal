@@ -2,12 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  Bell,
   CheckCircle2,
   FileText,
   Package,
   Plus,
-  Search,
   Settings as SettingsIcon,
   Store,
   Users,
@@ -17,7 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { loadAccountOrders, type OrderListRow } from "@/lib/order-queries";
 import { formatPrice, priceLabel } from "@/lib/pricing";
 import { withAvailableVariants } from "@/lib/order-builder";
-import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
+import { AppShell } from "@/components/app-shell";
 import { ProductImage } from "@/components/product-image";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
 import { Button } from "@/components/ui/button";
@@ -84,47 +82,15 @@ export default async function DashboardPage() {
   const greeting = userName || companyName;
 
   return (
-    <div className="flex min-h-screen bg-muted/40">
-      <DashboardSidebar
-        userName={userName}
-        companyName={companyName}
-        email={user.email ?? ""}
-        ordersBadge={draftCount}
-      />
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Topbar */}
-        <header className="sticky top-0 z-10 flex flex-none items-center gap-4 border-b border-border bg-background px-7 py-3.5">
-          <div className="min-w-0 flex-1">
-            <div className="text-xs text-muted-foreground">The Happy Box · Portal</div>
-            <div className="text-lg font-semibold tracking-tight text-foreground">
-              Welcome back{greeting ? `, ${greeting}` : ""}
-            </div>
-          </div>
-          {/* Decorative placeholders (search + notifications aren't built yet) */}
-          <div
-            aria-hidden="true"
-            className="hidden w-64 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground md:flex"
-          >
-            <Search className="size-[15px]" /> Search boxes, orders…
-          </div>
-          <button
-            type="button"
-            disabled
-            aria-label="Notifications (coming soon)"
-            title="Coming soon"
-            className="flex size-9 flex-none items-center justify-center rounded-lg border border-border bg-card text-muted-foreground"
-          >
-            <Bell className="size-[17px]" />
-          </button>
-          <Button render={<Link href="/orders/new" />}>
-            <Plus className="size-4" /> New order
-          </Button>
-        </header>
-
-        {/* Body */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="flex flex-col gap-6 px-7 py-6">
+    <AppShell
+      title={`Welcome back${greeting ? `, ${greeting}` : ""}`}
+      actions={
+        <Button render={<Link href="/orders/new" />}>
+          <Plus className="size-4" /> New order
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-6">
             {/* Metric cards — activity only, computed from real data */}
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               <MetricCard icon={Package} label="Total orders" value={totalOrders} sub={`${paidCount} paid · ${draftCount} draft`} />
@@ -214,10 +180,8 @@ export default async function DashboardPage() {
                 )}
               </section>
             </div>
-          </div>
-        </main>
       </div>
-    </div>
+    </AppShell>
   );
 }
 
