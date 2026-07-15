@@ -15,14 +15,14 @@ export function CategoryFilter({
   activeSlug?: string;
 }) {
   const pill = (active: boolean) =>
-    `rounded-full border px-4 py-1.5 text-sm transition ${
+    `rounded-full px-5 py-2 text-[14px] font-bold whitespace-nowrap transition ${
       active
-        ? "border-primary bg-primary text-primary-foreground"
-        : "border-border bg-white text-muted-foreground hover:bg-muted"
+        ? "border border-transparent bg-brand-yellow text-brand-navy"
+        : "border border-brand-navy bg-white text-brand-navy hover:bg-brand-yellow/10"
     }`;
 
   return (
-    <nav aria-label="Filter by category" className="flex flex-wrap gap-2">
+    <nav aria-label="Filter by category" className="flex flex-wrap gap-3">
       <Link href="/catalog" className={pill(!activeSlug)}>
         All
       </Link>
