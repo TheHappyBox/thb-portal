@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { Bell, Plus, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { AccountMenu } from "@/components/portal/account-menu";
+import { NewOrderMenu } from "@/components/portal/new-order-menu";
 
 /**
  * The shared topbar for the redesigned portal pages, from the Figma: an optional
@@ -67,14 +66,13 @@ export function PortalTopbar({
           email={email}
         />
 
-        {/* Primary action */}
-        <Button
-          render={<Link href="/orders/new" />}
-          variant="secondary"
-          className="h-10 gap-1.5 rounded-md px-6 text-[15px] font-bold"
+        {/* Primary action — forks into a single or bulk send */}
+        <NewOrderMenu
+          triggerLabel="New order"
+          triggerClassName="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-md bg-brand-yellow px-6 text-[15px] font-bold text-brand-navy outline-none transition hover:brightness-95 focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <Plus className="size-4" /> New order
-        </Button>
+        </NewOrderMenu>
       </div>
     </header>
   );

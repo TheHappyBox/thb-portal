@@ -89,16 +89,11 @@ export function BoxStep({
 
   return (
     <section className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-2xl font-semibold text-foreground">
-          {mode === "single" ? "Choose a box" : "Choose your boxes"}
-        </h2>
-        <p className="text-muted-foreground">
-          {mode === "single"
-            ? "Pick one box and a size for your recipient."
-            : "Add one or more boxes, each with a size and quantity."}
-        </p>
-      </div>
+      <p className="text-muted-foreground">
+        {mode === "single"
+          ? "Pick one box and a size for your recipient."
+          : "Add one or more boxes, each with a size and quantity."}
+      </p>
 
       {/* Selected boxes — multiple mode shows an editable list. */}
       {mode === "multiple" && selectedViews.length > 0 && (

@@ -1,8 +1,9 @@
 "use client";
 
 import type { RecipientDraft } from "@/types/order";
-import { recipientIssues } from "@/lib/order-builder";
+import { recipientFieldErrors } from "@/lib/order-builder";
 import { AddressFields } from "@/components/order-builder/address-fields";
+import { FieldError } from "@/components/order-builder/field-error";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,9 @@ import { Label } from "@/components/ui/label";
  * self-claim choice, and an optional per-recipient message that overrides the
  * order's shared message. Used both for the single-mode lean form (no index
  * label / remove) and as a card in the bulk list.
+ *
+ * Validation messages render under the field they belong to. The name is the
+ * only hard requirement; address messages are delivery advisories.
  */
 export function RecipientRow({
   recipient,
@@ -27,7 +31,7 @@ export function RecipientRow({
   onPatch: (patch: Partial<RecipientDraft>) => void;
   onRemove?: () => void;
 }) {
-  const issues = recipientIssues(recipient);
+  const errors = recipientFieldErrors(recipient);
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-white p-4">
@@ -46,20 +50,28 @@ export function RecipientRow({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <Input
-          placeholder="Full name"
-          autoComplete="name"
-          value={recipient.fullName}
-          onChange={(e) => onPatch({ fullName: e.target.value })}
-        />
-        <Input
-          type="email"
-          placeholder="Email (optional)"
-          autoComplete="email"
-          value={recipient.email}
-          onChange={(e) => onPatch({ email: e.target.value })}
-        />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="flex flex-col gap-1">
+          <Input
+            placeholder="Full name"
+            autoComplete="name"
+            aria-invalid={!!errors.fullName}
+            value={recipient.fullName}
+            onChange={(e) => onPatch({ fullName: e.target.value })}
+          />
+          <FieldError>{errors.fullName}</FieldError>
+        </div>
+        <div className="flex flex-col gap-1">
+          <Input
+            type="email"
+            placeholder="Email (optional)"
+            autoComplete="email"
+            aria-invalid={!!errors.email}
+            value={recipient.email}
+            onChange={(e) => onPatch({ email: e.target.value })}
+          />
+          <FieldError>{errors.email}</FieldError>
+        </div>
       </div>
 
       <Label className="flex items-center gap-2 text-sm text-foreground">
@@ -73,7 +85,7 @@ export function RecipientRow({
       </Label>
 
       {!recipient.selfClaim && (
-        <AddressFields recipient={recipient} onPatch={onPatch} />
+        <AddressFields recipient={recipient} errors={errors} onPatch={onPatch} />
       )}
 
       <Textarea
@@ -86,16 +98,6 @@ export function RecipientRow({
         value={recipient.message}
         onChange={(e) => onPatch({ message: e.target.value })}
       />
-
-      {issues.length > 0 && (
-        <ul className="flex flex-col gap-1">
-          {issues.map((issue) => (
-            <li key={issue} className="text-xs text-amber-700">
-              ⚠ {issue}
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }

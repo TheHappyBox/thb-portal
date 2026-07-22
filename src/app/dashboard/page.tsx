@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Gift, RefreshCw, Upload, type LucideIcon } from "lucide-react";
+import { Gift, RefreshCw, User, Users, type LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { loadAccountOrders, type OrderListRow } from "@/lib/order-queries";
 import { PortalSidebar } from "@/components/portal/portal-sidebar";
@@ -124,7 +124,7 @@ export default async function DashboardPage() {
             {recent.length === 0 ? (
               <div className="rounded-[10px] border border-brand-border-warm bg-white px-6 py-8 text-center text-[14px] text-brand-ink-soft">
                 No orders yet.{" "}
-                <Link href="/orders/new" className="font-bold text-brand-navy underline">
+                <Link href="/orders/new?mode=single" className="font-bold text-brand-navy underline">
                   Start your first order →
                 </Link>
               </div>
@@ -146,28 +146,28 @@ export default async function DashboardPage() {
           {/* Quick actions */}
           <section className="flex flex-wrap gap-6">
             <QuickAction
-              href="/orders/new"
-              icon={Gift}
-              label="Start a new order"
+              href="/orders/new?mode=single"
+              icon={User}
+              label="Send to one person"
               tile="bg-brand-yellow"
               iconWrap="bg-white"
               iconColor="text-brand-navy"
               labelColor="text-brand-navy"
             />
             <QuickAction
-              href="/orders"
-              icon={RefreshCw}
-              label="View your orders"
-              tile="bg-brand-navy"
+              href="/orders/new?mode=multiple"
+              icon={Users}
+              label="Send to many"
+              tile="bg-brand-teal"
               iconWrap="bg-white/[0.13]"
               iconColor="text-white"
               labelColor="text-white"
             />
             <QuickAction
-              href="/orders/new"
-              icon={Upload}
-              label="Upload recipients"
-              tile="bg-brand-teal"
+              href="/orders"
+              icon={RefreshCw}
+              label="View your orders"
+              tile="bg-brand-navy"
               iconWrap="bg-white/[0.13]"
               iconColor="text-white"
               labelColor="text-white"
@@ -192,7 +192,7 @@ export default async function DashboardPage() {
                   </p>
                 </div>
                 <Link
-                  href="/orders/new"
+                  href="/orders/new?mode=single"
                   className="rounded-md bg-brand-yellow px-6 py-2.5 text-[15px] font-bold text-brand-navy transition hover:brightness-95"
                 >
                   Start an order →

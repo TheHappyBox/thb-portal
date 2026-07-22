@@ -19,7 +19,6 @@ export function OrderSummary({
   state,
   products,
   brandingOptions,
-  onEditMode,
   onEditBoxes,
   onEditGiftOptions,
   onEditRecipients,
@@ -27,7 +26,6 @@ export function OrderSummary({
   state: BuilderState;
   products: ProductWithRelations[];
   brandingOptions: BrandingOption[];
-  onEditMode: () => void;
   onEditBoxes: () => void;
   onEditGiftOptions: () => void;
   onEditRecipients: () => void;
@@ -51,7 +49,8 @@ export function OrderSummary({
         <p className="text-muted-foreground">Here&apos;s everything you&apos;ve put together.</p>
       </div>
 
-      <SummaryCard label="Recipients" onEdit={onEditMode}>
+      {/* Send type is fixed at the entry point, so there's no step to edit. */}
+      <SummaryCard label="Send type">
         <p className="font-medium text-foreground">{modeLabel}</p>
       </SummaryCard>
 
@@ -171,16 +170,19 @@ function SummaryCard({
   children,
 }: {
   label: string;
-  onEdit: () => void;
+  /** Omitted when there's no step to go back to (e.g. the send type). */
+  onEdit?: () => void;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-white p-4">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-        <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
-          Edit
-        </Button>
+        {onEdit && (
+          <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
+            Edit
+          </Button>
+        )}
       </div>
       {children}
     </div>
