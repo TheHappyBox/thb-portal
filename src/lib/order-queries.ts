@@ -29,6 +29,12 @@ export interface OrderListRow {
   currency: string;
   recipientCount: number;
   claimedCount: number;
+  /**
+   * A human label for the order derived from its box(es) — orders have no name
+   * column, so we name them by their contents (e.g. "Birthday Box" or
+   * "Birthday Box +1 more"). Falls back to "Gift order" when nothing resolves.
+   */
+  title: string;
 }
 
 export interface OrderDetailRecipient {
@@ -48,6 +54,8 @@ export interface OrderDetail {
   createdAt: string;
   paidAt: string | null;
   mode: string | null;
+  giftTo: string | null;
+  giftFrom: string | null;
   sharedMessage: string | null;
   totalCents: number;
   amountTotalCents: number | null;
@@ -88,6 +96,17 @@ async function loadCatalog(supabase: SupabaseServerClient): Promise<{
     products: (productData ?? []) as ProductWithRelations[],
     brandingOptions: (brandingData ?? []) as BrandingOption[],
   };
+}
+
+/**
+ * Name an order by its box contents (orders carry no name column). One distinct
+ * box → that box's name; several → "First Box +N more"; none → "Gift order".
+ */
+function deriveOrderTitle(views: SelectedBoxView[]): string {
+  const names = [...new Set(views.map((v) => v.product.name))];
+  if (names.length === 0) return "Gift order";
+  if (names.length === 1) return names[0];
+  return `${names[0]} +${names.length - 1} more`;
 }
 
 /** Pick the displayed total: snapshot for paid orders, computed for drafts. */
@@ -166,6 +185,7 @@ export async function loadAccountOrders(): Promise<OrderListRow[]> {
       currency: views[0]?.variant.currency ?? "CAD",
       recipientCount: rs.length,
       claimedCount: rs.filter((r) => r.claim_status === "claimed").length,
+      title: deriveOrderTitle(views),
     };
   });
 }
@@ -177,7 +197,7 @@ export async function loadOrderDetail(orderId: string): Promise<OrderDetail | nu
   const { data: order, error } = await supabase
     .from("orders")
     .select(
-      "id, status, created_at, paid_at, mode, shared_message, amount_total_cents, message_card_option_id, box_branding_option_id",
+      "id, status, created_at, paid_at, mode, gift_to, gift_from, shared_message, amount_total_cents, message_card_option_id, box_branding_option_id",
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -234,6 +254,8 @@ export async function loadOrderDetail(orderId: string): Promise<OrderDetail | nu
     createdAt: order.created_at,
     paidAt: order.paid_at,
     mode: order.mode,
+    giftTo: order.gift_to,
+    giftFrom: order.gift_from,
     sharedMessage: order.shared_message,
     totalCents,
     amountTotalCents: order.amount_total_cents,
@@ -257,7 +279,9 @@ export async function loadDraftBuilderState(
 
   const { data: order, error } = await supabase
     .from("orders")
-    .select("id, status, mode, message_card_option_id, box_branding_option_id, shared_message")
+    .select(
+      "id, status, mode, message_card_option_id, box_branding_option_id, gift_to, gift_from, shared_message",
+    )
     .eq("id", orderId)
     .maybeSingle();
   if (error) throw new Error(`Could not load the draft: ${error.message}`);

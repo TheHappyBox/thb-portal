@@ -92,10 +92,20 @@ export function OrderSummary({
             />
           )}
         </dl>
-        {state.sharedMessage.trim() && (
-          <p className="mt-2 rounded-md bg-muted/40 px-3 py-2 text-sm italic text-foreground">
-            “{state.sharedMessage.trim()}”
-          </p>
+        {(state.giftTo.trim() || state.giftFrom.trim() || state.sharedMessage.trim()) && (
+          <div className="mt-2 flex flex-col gap-1 rounded-md bg-muted/40 px-3 py-2 text-sm text-foreground">
+            {state.giftTo.trim() && (
+              <p>
+                <span className="font-medium">To:</span> {state.giftTo.trim()}
+              </p>
+            )}
+            {state.giftFrom.trim() && (
+              <p>
+                <span className="font-medium">From:</span> {state.giftFrom.trim()}
+              </p>
+            )}
+            {state.sharedMessage.trim() && <p className="italic">“{state.sharedMessage.trim()}”</p>}
+          </div>
         )}
       </SummaryCard>
 

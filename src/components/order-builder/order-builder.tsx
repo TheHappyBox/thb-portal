@@ -22,14 +22,13 @@ import {
   resolveBoxes,
   saveBuilderState,
 } from "@/lib/order-builder";
+import { formatPrice } from "@/lib/pricing";
 import { saveOrderDraft, saveRecipients } from "@/app/orders/actions";
 import { ModeStep } from "@/components/order-builder/mode-step";
 import { BoxStep } from "@/components/order-builder/box-step";
 import { GiftOptionsStep } from "@/components/order-builder/gift-options-step";
 import { RecipientsStep } from "@/components/order-builder/recipients-step";
 import { OrderSummary } from "@/components/order-builder/order-summary";
-import { OrderTotalBar } from "@/components/order-builder/order-total-bar";
-import { Button } from "@/components/ui/button";
 
 type Step = "mode" | "boxes" | "giftOptions" | "recipients" | "summary";
 
@@ -51,10 +50,11 @@ function skipsBoxStep(state: BuilderState): boolean {
 }
 
 /**
- * Order builder shell. Holds the in-progress order and mirrors it to
- * sessionStorage. From the gift-options step onward it also persists a DRAFT
- * order to the database via server actions (account-scoped). Guides the buyer
- * through the steps and converges on a review with a correct total.
+ * Order builder shell (Figma redesign). A full-height column — a step indicator
+ * on top, the current step's content scrolling in the middle, and a sticky footer
+ * with the running Order Total + navigation. Holds the in-progress order and
+ * mirrors it to sessionStorage; from the gift-options step onward it also persists
+ * a DRAFT order to the database via server actions (account-scoped).
  */
 export function OrderBuilder({
   products,
@@ -136,6 +136,8 @@ export function OrderBuilder({
       boxes: s.boxes,
       messageCardOptionId: s.messageCardOptionId,
       boxBrandingOptionId: s.boxBrandingOptionId,
+      giftTo: s.giftTo,
+      giftFrom: s.giftFrom,
       sharedMessage: s.sharedMessage,
     });
     if (!res.ok) {
@@ -146,16 +148,17 @@ export function OrderBuilder({
   }
 
   // ---- transitions ----
-  function chooseMode(mode: OrderMode) {
-    const next: BuilderState = {
-      ...state,
-      mode,
-      boxes: reconcileBoxesForMode(state.boxes, mode),
-    };
-    if (skipsBoxStep(next)) {
-      void enterGiftOptions(next);
+  // Select a mode (highlights the card); the footer's Continue advances.
+  function selectMode(mode: OrderMode) {
+    patchState({ mode, boxes: reconcileBoxesForMode(state.boxes, mode) });
+  }
+
+  // Advance from the mode step: single-with-box skips straight to gift options.
+  function continueFromMode() {
+    if (skipsBoxStep(state)) {
+      void enterGiftOptions(state);
     } else {
-      setView({ state: next, step: "boxes" });
+      goTo("boxes");
     }
   }
 
@@ -219,7 +222,6 @@ export function OrderBuilder({
   const currency = views[0]?.variant.currency ?? "CAD";
   const canContinueBoxes = state.mode ? boxesValidForMode(state.boxes, state.mode) : false;
   const canContinueRecipients = recipientsValid(state.recipients);
-  const showTotalBar = step === "giftOptions" || step === "recipients";
 
   const steps: { key: Step; label: string }[] = [
     { key: "mode", label: "Type" },
@@ -243,169 +245,176 @@ export function OrderBuilder({
   };
   const canGoToIndex = (i: number) => i <= activeIndex || reachable[steps[i].key];
 
+  // Footer navigation per step (Back / primary action).
+  const footer: {
+    onBack?: () => void;
+    onNext?: () => void;
+    nextLabel?: string;
+    nextDisabled?: boolean;
+  } =
+    step === "mode"
+      ? { onNext: continueFromMode, nextLabel: "Continue →", nextDisabled: !state.mode }
+      : step === "boxes"
+        ? {
+            onBack: () => goTo("mode"),
+            onNext: () => enterGiftOptions(state),
+            nextLabel: "Continue →",
+            nextDisabled: !canContinueBoxes,
+          }
+        : step === "giftOptions"
+          ? {
+              onBack: () => goTo("boxes"),
+              onNext: continueFromGiftOptions,
+              nextLabel: saving ? "Saving…" : "Continue →",
+              nextDisabled: saving,
+            }
+          : step === "recipients"
+            ? {
+                onBack: () => goTo("giftOptions"),
+                onNext: continueFromRecipients,
+                nextLabel: saving ? "Saving…" : "Review order →",
+                nextDisabled: saving || !canContinueRecipients,
+              }
+            : { onBack: () => goTo("recipients") };
+
   return (
-    <div className="flex flex-col gap-8">
-      {/* Persistent, navigable step indicator */}
-      <nav
-        aria-label="Order steps"
-        className="flex flex-wrap items-center gap-x-1 gap-y-2 rounded-xl border border-border bg-card p-3"
-      >
-        {steps.map((s, i) => {
-          const active = s.key === step;
-          const done = i < activeIndex;
-          const clickable = canGoToIndex(i) && !active;
-          return (
-            <div key={s.key} className="flex items-center">
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* Step indicator */}
+      <div className="flex-none border-b border-[#e8e8e8] bg-white px-16">
+        <nav aria-label="Order steps" className="flex h-20 items-center gap-6 overflow-x-auto">
+          {steps.map((s, i) => {
+            const active = i === activeIndex;
+            const done = i < activeIndex;
+            const clickable = canGoToIndex(i) && !active;
+            return (
+              <div key={s.key} className="flex items-center gap-6">
+                <button
+                  type="button"
+                  onClick={() => clickable && goTo(s.key)}
+                  disabled={!clickable && !active}
+                  aria-current={active ? "step" : undefined}
+                  className={`flex items-center gap-3 ${clickable ? "cursor-pointer" : "cursor-default"}`}
+                >
+                  <span
+                    className={`flex size-7 items-center justify-center rounded-[8px] text-[12px] font-extrabold ${
+                      active
+                        ? "bg-brand-yellow text-brand-navy"
+                        : done
+                          ? "bg-brand-navy text-white"
+                          : "border border-[#d1d5db] text-[#9ca3af]"
+                    }`}
+                  >
+                    {i + 1}
+                  </span>
+                  <span
+                    className={`whitespace-nowrap text-[14px] ${
+                      active
+                        ? "font-bold text-brand-navy"
+                        : done
+                          ? "font-medium text-brand-navy"
+                          : "font-medium text-[#9ca3af]"
+                    }`}
+                  >
+                    {s.label}
+                  </span>
+                </button>
+                {i < steps.length - 1 && (
+                  <span className="h-px w-10 shrink-0 bg-[#e5e7eb]" aria-hidden="true" />
+                )}
+              </div>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Current step (scrolls) */}
+      <div className="flex-1 overflow-y-auto">
+        <div
+          className={`mx-auto w-full px-16 py-12 ${
+            step === "giftOptions" ? "max-w-6xl" : "max-w-4xl"
+          }`}
+        >
+          {step === "mode" && <ModeStep mode={state.mode} onChoose={selectMode} />}
+
+          {step === "boxes" && state.mode && (
+            <BoxStep mode={state.mode} products={products} boxes={state.boxes} onChange={setBoxes} />
+          )}
+
+          {step === "giftOptions" && (
+            <GiftOptionsStep
+              brandingOptions={brandingOptions}
+              messageCardOptionId={state.messageCardOptionId}
+              boxBrandingOptionId={state.boxBrandingOptionId}
+              giftTo={state.giftTo}
+              giftFrom={state.giftFrom}
+              sharedMessage={state.sharedMessage}
+              boxViews={views}
+              onChange={patchState}
+              onEditBoxes={() => goTo("boxes")}
+            />
+          )}
+
+          {step === "recipients" && state.mode && (
+            <RecipientsStep
+              mode={state.mode}
+              recipients={state.recipients}
+              sharedMessage={state.sharedMessage}
+              onChange={setRecipients}
+            />
+          )}
+
+          {step === "summary" && (
+            <OrderSummary
+              state={state}
+              products={products}
+              brandingOptions={brandingOptions}
+              onEditMode={() => goTo("mode")}
+              onEditBoxes={() => goTo("boxes")}
+              onEditGiftOptions={() => goTo("giftOptions")}
+              onEditRecipients={() => goTo("recipients")}
+            />
+          )}
+
+          {actionError && (
+            <p role="alert" className="mt-6 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+              {actionError}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Footer: running total + navigation */}
+      <div className="flex-none border-t border-[#e8e8e8] bg-white px-16">
+        <div className="flex h-20 items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-[14px] text-brand-ink-soft">Order Total:</span>
+            <span className="text-[24px] font-extrabold text-brand-navy">
+              {formatPrice(totalCents, currency)}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            {footer.onBack && (
               <button
                 type="button"
-                onClick={() => clickable && goTo(s.key)}
-                disabled={!clickable && !active}
-                aria-current={active ? "step" : undefined}
-                className={`flex items-center gap-2 rounded-full px-2.5 py-1.5 text-sm transition-colors ${
-                  clickable ? "cursor-pointer hover:bg-muted" : "cursor-default"
-                } ${active ? "bg-muted" : ""}`}
+                onClick={footer.onBack}
+                className="rounded-[5px] px-6 py-4 text-[16px] font-bold text-brand-navy transition hover:bg-brand-sand"
               >
-                <span
-                  className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : done
-                        ? "bg-secondary text-secondary-foreground"
-                        : "border border-border text-muted-foreground"
-                  }`}
-                >
-                  {i + 1}
-                </span>
-                <span
-                  className={
-                    active ? "font-medium text-foreground" : "text-muted-foreground"
-                  }
-                >
-                  {s.label}
-                </span>
+                ← Back
               </button>
-              {i < steps.length - 1 && (
-                <span className="mx-0.5 text-border" aria-hidden="true">
-                  →
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </nav>
-
-      {showTotalBar && <OrderTotalBar totalCents={totalCents} currency={currency} />}
-
-      {step === "mode" && <ModeStep mode={state.mode} onChoose={chooseMode} />}
-
-      {step === "boxes" && state.mode && (
-        <BoxStep
-          mode={state.mode}
-          products={products}
-          boxes={state.boxes}
-          onChange={setBoxes}
-        />
-      )}
-
-      {step === "giftOptions" && (
-        <GiftOptionsStep
-          brandingOptions={brandingOptions}
-          messageCardOptionId={state.messageCardOptionId}
-          boxBrandingOptionId={state.boxBrandingOptionId}
-          sharedMessage={state.sharedMessage}
-          onChange={patchState}
-        />
-      )}
-
-      {step === "recipients" && state.mode && (
-        <RecipientsStep
-          mode={state.mode}
-          recipients={state.recipients}
-          sharedMessage={state.sharedMessage}
-          onChange={setRecipients}
-        />
-      )}
-
-      {step === "summary" && (
-        <OrderSummary
-          state={state}
-          products={products}
-          brandingOptions={brandingOptions}
-          onEditMode={() => goTo("mode")}
-          onEditBoxes={() => goTo("boxes")}
-          onEditGiftOptions={() => goTo("giftOptions")}
-          onEditRecipients={() => goTo("recipients")}
-        />
-      )}
-
-      {actionError && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          {actionError}
-        </p>
-      )}
-
-      {/* Footer navigation */}
-      {step === "mode" && (
-        <FooterNav
-          onNext={() => (skipsBoxStep(state) ? enterGiftOptions(state) : goTo("boxes"))}
-          nextLabel="Continue →"
-          nextDisabled={!state.mode}
-        />
-      )}
-
-      {step === "boxes" && (
-        <FooterNav
-          onBack={() => goTo("mode")}
-          onNext={() => enterGiftOptions(state)}
-          nextLabel="Continue →"
-          nextDisabled={!canContinueBoxes}
-        />
-      )}
-
-      {step === "giftOptions" && (
-        <FooterNav
-          onBack={() => goTo("boxes")}
-          onNext={continueFromGiftOptions}
-          nextLabel={saving ? "Saving…" : "Continue →"}
-          nextDisabled={saving}
-        />
-      )}
-
-      {step === "recipients" && (
-        <FooterNav
-          onBack={() => goTo("giftOptions")}
-          onNext={continueFromRecipients}
-          nextLabel={saving ? "Saving…" : "Review order →"}
-          nextDisabled={saving || !canContinueRecipients}
-        />
-      )}
-    </div>
-  );
-}
-
-function FooterNav({
-  onBack,
-  onNext,
-  nextLabel,
-  nextDisabled,
-}: {
-  onBack?: () => void;
-  onNext: () => void;
-  nextLabel: string;
-  nextDisabled?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between border-t border-border pt-4">
-      {onBack ? (
-        <Button type="button" variant="ghost" onClick={onBack}>
-          ← Back
-        </Button>
-      ) : (
-        <span />
-      )}
-      <Button type="button" onClick={onNext} disabled={nextDisabled}>
-        {nextLabel}
-      </Button>
+            )}
+            {footer.onNext && (
+              <button
+                type="button"
+                onClick={footer.onNext}
+                disabled={footer.nextDisabled}
+                className="rounded-[5px] bg-brand-navy px-8 py-4 text-[16px] font-bold text-white transition hover:bg-brand-navy/90 disabled:pointer-events-none disabled:opacity-50"
+              >
+                {footer.nextLabel}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -43,6 +43,15 @@
   --brand-grey-100: #eef1f2;
   --brand-grey-200: #e6e9eb;
 
+  /* Warm neutrals — the cream/sand surfaces the dashboard redesign uses (the
+     rest of the app stays on the cool greys above; these are additive). */
+  --brand-cream: #fdfaf5; /* warm canvas behind the dashboard content */
+  --brand-border-warm: #e5e1d9; /* warm hairline for cards/sidebar on cream */
+  --brand-sand: #f5f2eb; /* table header / subtle warm fill */
+  --brand-ink-soft: #667a80; /* warm secondary text on cream/white */
+  --brand-stat: #f6f8fb; /* stat-card fill */
+  --brand-stat-border: #e0e7ef; /* stat-card border */
+
   /* ---- shadcn semantic tokens, mapped to the brand (AA-aware) ---- */
   --background: #ffffff;
   --foreground: #002f40; /* navy text on white ≈ 13:1 */
@@ -142,6 +151,12 @@
   --color-brand-ice: var(--brand-ice);
   --color-brand-teal: var(--brand-teal);
   --color-brand-navy: var(--brand-navy);
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-border-warm: var(--brand-border-warm);
+  --color-brand-sand: var(--brand-sand);
+  --color-brand-ink-soft: var(--brand-ink-soft);
+  --color-brand-stat: var(--brand-stat);
+  --color-brand-stat-border: var(--brand-stat-border);
 
   --font-sans: var(--font-sans);
   --font-heading: var(--font-heading);

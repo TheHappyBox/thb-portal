@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { AppShell } from "@/components/app-shell";
+import { loadPortalChrome } from "@/lib/portal-chrome";
+import { PortalSidebar } from "@/components/portal/portal-sidebar";
+import { AccountMenu } from "@/components/portal/account-menu";
+import { Button } from "@/components/ui/button";
 import { OrderBuilder } from "@/components/order-builder/order-builder";
 import { defaultVariant } from "@/lib/pricing";
 import { withAvailableVariants } from "@/lib/order-builder";
@@ -15,10 +20,11 @@ export const metadata: Metadata = {
 };
 
 /**
- * Gated order builder. Two entry points land here and share the same flow:
+ * Gated order builder (Figma redesign): the portal shell (sidebar + header) wraps
+ * the builder, which owns the stepper, step content, and the running-total footer.
+ * Two entry points land here and share the same flow:
  *  - from scratch: /orders/new  (mode is asked first)
  *  - from a box:   /orders/new?box=<shopify_handle>&variant=<variantId>
- *    (the box is pre-filled, then mode is asked)
  *
  * Catalog data is fetched server-side (RLS allows any logged-in user to read it)
  * and handed to the client builder, which owns the in-progress state.
@@ -38,6 +44,8 @@ export default async function NewOrderPage({
   if (!user) {
     redirect("/login");
   }
+
+  const chrome = await loadPortalChrome();
 
   const { data: productData, error } = await supabase
     .from("products")
@@ -100,8 +108,30 @@ export default async function NewOrderPage({
   }
 
   return (
-    <AppShell title="Build your order" description="Choose boxes, add gift options, and add recipients.">
-      <div className="mx-auto max-w-4xl">
+    <div className="flex h-screen overflow-hidden bg-brand-cream text-brand-navy">
+      <PortalSidebar active="orders" ordersBadge={chrome.draftBadge} />
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Builder header */}
+        <header className="flex h-20 flex-none items-center justify-between bg-white px-16">
+          <h1 className="text-[24px] font-extrabold text-brand-navy">Build your order</h1>
+          <div className="flex items-center gap-3">
+            <AccountMenu
+              initials={chrome.initials}
+              userName={chrome.userName}
+              companyName={chrome.companyName}
+              email={chrome.email}
+            />
+            <Button
+              render={<Link href="/orders/new" />}
+              variant="secondary"
+              className="h-10 gap-1.5 rounded-md px-6 text-[14px] font-semibold"
+            >
+              <Plus className="size-4" /> New order
+            </Button>
+          </div>
+        </header>
+
         <OrderBuilder
           products={products}
           brandingOptions={brandingOptions}
@@ -109,6 +139,6 @@ export default async function NewOrderPage({
           initialDraft={initialDraft}
         />
       </div>
-    </AppShell>
+    </div>
   );
 }

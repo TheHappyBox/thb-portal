@@ -44,6 +44,8 @@ export async function saveOrderDraft(
     mode: input.mode,
     message_card_option_id: input.messageCardOptionId,
     box_branding_option_id: input.boxBrandingOptionId,
+    gift_to: input.giftTo.trim() || null,
+    gift_from: input.giftFrom.trim() || null,
     shared_message: input.sharedMessage.trim() || null,
   };
 

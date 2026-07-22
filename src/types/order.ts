@@ -52,7 +52,9 @@ export interface BuilderState {
   /** Chosen branding_options ids (null = not chosen / not applicable). */
   messageCardOptionId: string | null;
   boxBrandingOptionId: string | null;
-  /** Shared/default gift message for the whole order. */
+  /** Who the gift is TO / FROM, and the shared/default gift message. */
+  giftTo: string;
+  giftFrom: string;
   sharedMessage: string;
   recipients: RecipientDraft[];
 }
@@ -75,6 +77,8 @@ export interface OrderDraftInput {
   boxes: SelectedBox[];
   messageCardOptionId: string | null;
   boxBrandingOptionId: string | null;
+  giftTo: string;
+  giftFrom: string;
   sharedMessage: string;
 }
 

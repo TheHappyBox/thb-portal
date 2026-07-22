@@ -96,10 +96,20 @@ export default async function OrderConfirmationPage({
             />
           </dl>
 
-          {order.sharedMessage?.trim() && (
-            <p className="rounded-md bg-muted/40 px-3 py-2 text-sm italic text-foreground">
-              “{order.sharedMessage.trim()}”
-            </p>
+          {(order.giftTo?.trim() || order.giftFrom?.trim() || order.sharedMessage?.trim()) && (
+            <div className="flex flex-col gap-1 rounded-md bg-muted/40 px-3 py-2 text-sm text-foreground">
+              {order.giftTo?.trim() && (
+                <p>
+                  <span className="font-medium">To:</span> {order.giftTo.trim()}
+                </p>
+              )}
+              {order.giftFrom?.trim() && (
+                <p>
+                  <span className="font-medium">From:</span> {order.giftFrom.trim()}
+                </p>
+              )}
+              {order.sharedMessage?.trim() && <p className="italic">“{order.sharedMessage.trim()}”</p>}
+            </div>
           )}
 
           <div className="flex items-center justify-between border-t border-border pt-4">

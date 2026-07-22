@@ -23,6 +23,8 @@ export const emptyBuilderState: BuilderState = {
   boxes: [],
   messageCardOptionId: null,
   boxBrandingOptionId: null,
+  giftTo: "",
+  giftFrom: "",
   sharedMessage: "",
   recipients: [],
 };
@@ -77,6 +79,8 @@ export function loadBuilderState(): BuilderState {
         typeof parsed.messageCardOptionId === "string" ? parsed.messageCardOptionId : null,
       boxBrandingOptionId:
         typeof parsed.boxBrandingOptionId === "string" ? parsed.boxBrandingOptionId : null,
+      giftTo: typeof parsed.giftTo === "string" ? parsed.giftTo : "",
+      giftFrom: typeof parsed.giftFrom === "string" ? parsed.giftFrom : "",
       sharedMessage: typeof parsed.sharedMessage === "string" ? parsed.sharedMessage : "",
       recipients: Array.isArray(parsed.recipients)
         ? parsed.recipients.map(normalizeRecipient)
@@ -300,6 +304,8 @@ export interface DraftOrderRow {
   mode: string | null;
   message_card_option_id: string | null;
   box_branding_option_id: string | null;
+  gift_to: string | null;
+  gift_from: string | null;
   shared_message: string | null;
 }
 
@@ -348,6 +354,8 @@ export function draftToBuilderState(
     })),
     messageCardOptionId: order.message_card_option_id,
     boxBrandingOptionId: order.box_branding_option_id,
+    giftTo: order.gift_to ?? "",
+    giftFrom: order.gift_from ?? "",
     sharedMessage: order.shared_message ?? "",
     recipients: recipients.map((r) => ({
       id: r.id,

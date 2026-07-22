@@ -1,115 +1,271 @@
 "use client";
 
 import type { BrandingOption } from "@/types/catalog";
+import type { SelectedBoxView } from "@/types/order";
 import { brandingForGroup } from "@/lib/order-builder";
 import { formatPrice } from "@/lib/pricing";
-import { Label } from "@/components/ui/label";
+import { ProductImage } from "@/components/product-image";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 /**
- * "Gift options" step. The buyer chooses one message-card option and one
- * box-branding option for the whole order (each priced per gift, on top of the
- * box price) and optionally writes a shared gift message. Selections + message
- * flow back to the builder, which keeps the running total in sync.
+ * Step 3 — "Gift options" (Figma redesign). A live preview of the chosen box on
+ * the left; on the right the box summary, a shared gift message, and the add-ons:
+ * a branded-message-card toggle and a box-branding picker (both real
+ * branding_options, priced per gift). Selections + message flow back to the
+ * builder, which keeps the running total in sync.
+ *
+ * Note: the Figma also shows To/From message fields and a per-order logo upload.
+ * Our data model has neither (one shared message; the company logo lives in
+ * Settings, not on an order), so those are omitted rather than faked.
  */
 export function GiftOptionsStep({
   brandingOptions,
   messageCardOptionId,
   boxBrandingOptionId,
+  giftTo,
+  giftFrom,
   sharedMessage,
+  boxViews,
   onChange,
+  onEditBoxes,
 }: {
   brandingOptions: BrandingOption[];
   messageCardOptionId: string | null;
   boxBrandingOptionId: string | null;
+  giftTo: string;
+  giftFrom: string;
   sharedMessage: string;
+  boxViews: SelectedBoxView[];
   onChange: (patch: {
     messageCardOptionId?: string;
     boxBrandingOptionId?: string;
+    giftTo?: string;
+    giftFrom?: string;
     sharedMessage?: string;
   }) => void;
+  onEditBoxes: () => void;
 }) {
   const messageCards = brandingForGroup(brandingOptions, "message_card");
   const boxBrandings = brandingForGroup(brandingOptions, "box_branding");
+  // The message-card group is a free "none" + a paid "branded" option → a toggle.
+  const paidCard = messageCards.find((o) => o.price_cents > 0);
+  const freeCard = messageCards.find((o) => o.price_cents === 0);
+  const cardOn = !!paidCard && messageCardOptionId === paidCard.id;
+
+  const preview = boxViews[0] ?? null;
+  const moreBoxes = Math.max(0, boxViews.length - 1);
+  const sizeLine = (v: SelectedBoxView) =>
+    `${v.variant.name} · ${formatPrice(v.variant.price_cents, v.variant.currency)}`;
 
   return (
-    <section className="flex flex-col gap-8">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-2xl font-semibold text-foreground">Gift options</h2>
-        <p className="text-muted-foreground">
-          Add optional branding to every gift, and write a message to include. Branding
-          is priced per gift.
+    <section className="flex flex-col gap-10 lg:flex-row">
+      {/* Left: live preview */}
+      <div className="flex w-full flex-col gap-3 lg:w-[480px]">
+        <p className="text-[12px] font-bold uppercase tracking-[0.06em] text-[#6b7280]">
+          Live preview
         </p>
+        <div className="flex flex-col gap-4 rounded-[16px] border border-[#e8e8e8] bg-[#fff8e7] p-6">
+          <div className="relative h-[400px] w-full overflow-hidden rounded-[12px] bg-white">
+            {preview ? (
+              <ProductImage src={preview.product.image_url} alt={preview.product.name} />
+            ) : (
+              <div className="flex h-full items-center justify-center px-6 text-center text-[14px] text-[#6b7280]">
+                No box selected yet.
+              </div>
+            )}
+          </div>
+          {preview && (
+            <div className="flex flex-col gap-2">
+              <p className="text-[16px] font-extrabold text-brand-navy">{preview.product.name}</p>
+              <p className="text-[13px] text-[#6b7280]">
+                {sizeLine(preview)}
+                {moreBoxes > 0 ? ` · +${moreBoxes} more box${moreBoxes === 1 ? "" : "es"}` : ""}
+              </p>
+              <button
+                type="button"
+                onClick={onEditBoxes}
+                className="w-fit text-[13px] font-bold text-brand-navy underline"
+              >
+                Change
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      <BrandingGroupPicker
-        legend="Message card"
-        options={messageCards}
-        selectedId={messageCardOptionId}
-        onSelect={(id) => onChange({ messageCardOptionId: id })}
-      />
+      {/* Right: options */}
+      <div className="flex min-w-0 flex-1 flex-col gap-8">
+        {/* Selected box summary */}
+        {preview && (
+          <div className="flex items-center justify-between gap-3 rounded-[10px] border border-[#e5e7eb] bg-[#f6f8fb] p-4">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="size-16 shrink-0 overflow-hidden rounded-[10px] bg-[#fff8e7]">
+                <ProductImage src={preview.product.image_url} alt={preview.product.name} />
+              </div>
+              <div className="flex min-w-0 flex-col gap-1">
+                <p className="truncate text-[14px] font-extrabold text-brand-navy">
+                  {preview.product.name}
+                </p>
+                {preview.product.description && (
+                  <p className="line-clamp-1 text-[12px] text-[#6b7280]">
+                    {preview.product.description}
+                  </p>
+                )}
+                <p className="text-[12px] text-[#6b7280]">{sizeLine(preview)}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onEditBoxes}
+              className="shrink-0 text-[13px] font-bold text-brand-navy underline"
+            >
+              Change
+            </button>
+          </div>
+        )}
 
-      <BrandingGroupPicker
-        legend="Box branding"
-        options={boxBrandings}
-        selectedId={boxBrandingOptionId}
-        onSelect={(id) => onChange({ boxBrandingOptionId: id })}
-      />
+        {/* Gift message */}
+        <div className="flex flex-col gap-4">
+          <h3 className="text-[18px] font-extrabold text-brand-navy">Gift message</h3>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="gift-to" className="text-[13px] font-bold text-brand-navy">
+                To
+              </label>
+              <Input
+                id="gift-to"
+                value={giftTo}
+                onChange={(e) => onChange({ giftTo: e.target.value })}
+                placeholder="Recipient name"
+                className="h-12 rounded-[10px]"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="gift-from" className="text-[13px] font-bold text-brand-navy">
+                From
+              </label>
+              <Input
+                id="gift-from"
+                value={giftFrom}
+                onChange={(e) => onChange({ giftFrom: e.target.value })}
+                placeholder="Your name"
+                className="h-12 rounded-[10px]"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="shared-message" className="text-[13px] font-bold text-brand-navy">
+                Message
+              </label>
+              <Textarea
+                id="shared-message"
+                value={sharedMessage}
+                onChange={(e) => onChange({ sharedMessage: e.target.value })}
+                rows={4}
+                placeholder="Write a personal note for every recipient…"
+                className="min-h-[120px] rounded-[10px]"
+              />
+            </div>
+          </div>
+        </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="shared-message" className="text-sm font-medium text-foreground">
-          Gift message <span className="font-normal text-muted-foreground">(optional)</span>
-        </Label>
-        <Textarea
-          id="shared-message"
-          value={sharedMessage}
-          onChange={(e) => onChange({ sharedMessage: e.target.value })}
-          rows={3}
-          placeholder="A note included with every gift — recipients can be given their own message too."
-        />
+        {/* Add-on items */}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <h3 className="text-[18px] font-extrabold text-brand-navy">Add-on items</h3>
+            <p className="text-[14px] text-[#6b7280]">
+              Optional branding on every gift. Priced per recipient.
+            </p>
+          </div>
+
+          {/* Branded message card — toggle */}
+          {paidCard && (
+            <div className="flex items-center justify-between gap-3 rounded-[12px] border border-[#e5e7eb] bg-white p-4">
+              <div className="flex min-w-0 flex-col gap-1">
+                <p className="text-[14px] font-bold text-brand-navy">{paidCard.name}</p>
+                <p className="text-[13px] text-[#6b7280]">A personalized card in each box</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <span className="text-[13px] font-bold text-brand-navy">
+                  +{formatPrice(paidCard.price_cents, paidCard.currency)}
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={cardOn}
+                  aria-label={paidCard.name}
+                  onClick={() =>
+                    onChange({
+                      messageCardOptionId: cardOn ? (freeCard?.id ?? paidCard.id) : paidCard.id,
+                    })
+                  }
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+                    cardOn ? "bg-brand-yellow" : "bg-[#d1d5db]"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-all ${
+                      cardOn ? "left-[22px]" : "left-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Box branding — radio cards */}
+          {boxBrandings.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <p className="text-[14px] font-extrabold text-brand-navy">Choose your box branding</p>
+                <p className="text-[13px] text-[#6b7280]">
+                  Select one option for the outer packaging.
+                </p>
+              </div>
+              <div
+                role="radiogroup"
+                aria-label="Box branding"
+                className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+              >
+                {boxBrandings.map((o) => {
+                  const active = o.id === boxBrandingOptionId;
+                  return (
+                    <button
+                      key={o.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => onChange({ boxBrandingOptionId: o.id })}
+                      className={`flex flex-col gap-2 rounded-[12px] border p-3 text-left transition ${
+                        active
+                          ? "border-brand-yellow"
+                          : "border-[#e5e7eb] hover:border-brand-yellow/50"
+                      }`}
+                    >
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-[13px] font-bold text-brand-navy">{o.name}</span>
+                        <span
+                          aria-hidden="true"
+                          className={`flex size-[18px] shrink-0 items-center justify-center rounded-full border ${
+                            active ? "border-brand-yellow bg-brand-yellow" : "border-[#d1d5db] bg-white"
+                          }`}
+                        >
+                          {active && <span className="size-1.5 rounded-full bg-white" />}
+                        </span>
+                      </span>
+                      <span className="text-[13px] font-bold text-brand-navy">
+                        {o.price_cents === 0
+                          ? "Included"
+                          : `+${formatPrice(o.price_cents, o.currency)}`}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </section>
-  );
-}
-
-function BrandingGroupPicker({
-  legend,
-  options,
-  selectedId,
-  onSelect,
-}: {
-  legend: string;
-  options: BrandingOption[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <fieldset className="flex flex-col gap-3">
-      <legend className="text-sm font-semibold text-foreground">{legend}</legend>
-      <div role="radiogroup" aria-label={legend} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {options.map((o) => {
-          const active = o.id === selectedId;
-          return (
-            <button
-              key={o.id}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => onSelect(o.id)}
-              className={`flex items-center justify-between rounded-lg border px-4 py-3 text-left transition ${
-                active
-                  ? "border-primary bg-muted/40 ring-1 ring-primary"
-                  : "border-border bg-white hover:border-primary/40"
-              }`}
-            >
-              <span className="text-sm font-medium text-foreground">{o.name}</span>
-              <span className="text-sm text-muted-foreground">
-                {o.price_cents === 0 ? "Included" : `+${formatPrice(o.price_cents, o.currency)}`}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </fieldset>
   );
 }

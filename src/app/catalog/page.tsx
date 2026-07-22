@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppShell } from "@/components/app-shell";
+import { loadPortalChrome } from "@/lib/portal-chrome";
+import { PortalSidebar } from "@/components/portal/portal-sidebar";
+import { PortalTopbar } from "@/components/portal/portal-topbar";
 import { CategoryFilter } from "@/components/category-filter";
-import { ProductCard } from "@/components/product-card";
+import { CatalogGrid } from "@/components/catalog/catalog-grid";
 import { withAvailableVariants } from "@/lib/order-builder";
 import type { Category, ProductWithRelations } from "@/types/catalog";
 
@@ -13,16 +15,16 @@ export const metadata: Metadata = {
 };
 
 /**
- * Gated catalog grid. Only logged-in users reach it; everyone else is sent to
- * /login. Reads the global catalog (RLS allows any authenticated user to read
- * products, categories, and variants) and renders a responsive grid with a
- * category filter. Featured boxes are surfaced first.
+ * Gated catalog grid, rebuilt to match the Figma redesign: the portal shell
+ * (sidebar + topbar) with a category-pill filter and a responsive box grid.
+ * Reads the global catalog (RLS allows any logged-in user to read products,
+ * categories, and variants). Featured boxes are surfaced first.
  */
 export default async function CatalogPage({
   searchParams,
 }: {
   // Next 16: searchParams is a Promise and must be awaited.
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; box?: string }>;
 }) {
   const supabase = await createClient();
 
@@ -34,7 +36,8 @@ export default async function CatalogPage({
     redirect("/login");
   }
 
-  const { category: activeSlug } = await searchParams;
+  const { category: activeSlug, box: openHandle } = await searchParams;
+  const chrome = await loadPortalChrome();
 
   // Categories for the filter pills (and to resolve the active slug -> id).
   const { data: categories, error: categoriesError } = await supabase
@@ -73,26 +76,33 @@ export default async function CatalogPage({
   const visibleProducts = withAvailableVariants((products ?? []) as ProductWithRelations[]);
 
   return (
-    <AppShell
-      title="Curated gift boxes"
-      description="Thoughtfully assembled boxes to delight your team and clients — order in bulk, choose a size, and make every gift feel personal."
-    >
-      <CategoryFilter
-        categories={(categories ?? []) as Pick<Category, "name" | "slug">[]}
-        activeSlug={activeSlug}
-      />
+    <div className="flex min-h-screen bg-brand-cream text-brand-navy">
+      <PortalSidebar active="catalog" ordersBadge={chrome.draftBadge} />
 
-      {visibleProducts.length === 0 ? (
-        <p className="mt-6 rounded-lg border border-dashed border-border bg-card p-8 text-center text-muted-foreground">
-          No boxes in this category yet. Try another category.
-        </p>
-      ) : (
-        <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {visibleProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      )}
-    </AppShell>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <PortalTopbar
+          title="Browse catalog"
+          userName={chrome.userName}
+          companyName={chrome.companyName}
+          email={chrome.email}
+          initials={chrome.initials}
+        />
+
+        <main className="flex flex-col gap-8 px-10 pb-16 pt-2">
+          <CategoryFilter
+            categories={(categories ?? []) as Pick<Category, "name" | "slug">[]}
+            activeSlug={activeSlug}
+          />
+
+          {visibleProducts.length === 0 ? (
+            <p className="rounded-[14px] border border-dashed border-brand-border-warm bg-white p-8 text-center text-[14px] text-brand-ink-soft">
+              No boxes in this category yet. Try another category.
+            </p>
+          ) : (
+            <CatalogGrid products={visibleProducts} initialOpenHandle={openHandle} />
+          )}
+        </main>
+      </div>
+    </div>
   );
 }
