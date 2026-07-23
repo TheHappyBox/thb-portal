@@ -60,13 +60,17 @@ function Field({
  * Shared sign-in / sign-up form. `mode` switches the extra fields and copy.
  * Errors returned by the server action are shown inline — failures never pass
  * silently.
+ *
+ * `onSwitchMode` swaps between sign in and sign up in place (no navigation).
  */
 export function AuthForm({
   mode,
   action,
+  onSwitchMode,
 }: {
   mode: "signin" | "signup";
   action: AuthAction;
+  onSwitchMode: () => void;
 }) {
   const [state, formAction] = useActionState<AuthFormState, FormData>(
     action,
@@ -91,7 +95,7 @@ export function AuthForm({
         <CardContent>
           <form action={formAction} className="flex flex-col gap-4">
             {isSignup && (
-              <>
+              <div className="flex animate-in flex-col gap-4 duration-200 fade-in-0 slide-in-from-top-1">
                 <Field label="Company name" name="companyName" autoComplete="organization" />
                 <Field
                   label="Your name"
@@ -99,7 +103,7 @@ export function AuthForm({
                   autoComplete="name"
                   required={false}
                 />
-              </>
+              </div>
             )}
             <Field label="Email" name="email" type="email" autoComplete="email" />
             <Field
@@ -132,28 +136,16 @@ export function AuthForm({
         </CardContent>
       </Card>
 
+      {/* Swaps the form in place — deliberately a button, not a link: no navigation. */}
       <p className="text-center text-sm text-muted-foreground">
-        {isSignup ? (
-          <>
-            Already have an account?{" "}
-            <Link
-              href="/login"
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
-              Log in
-            </Link>
-          </>
-        ) : (
-          <>
-            New here?{" "}
-            <Link
-              href="/signup"
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
-              Create a company account
-            </Link>
-          </>
-        )}
+        {isSignup ? "Already have an account? " : "New here? "}
+        <button
+          type="button"
+          onClick={onSwitchMode}
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
+          {isSignup ? "Log in" : "Create a company account"}
+        </button>
       </p>
     </div>
   );
