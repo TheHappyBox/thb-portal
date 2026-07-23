@@ -6,6 +6,7 @@ import { signOut } from "@/app/(auth)/actions";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -37,12 +38,16 @@ export function AccountMenu({
         {initials}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="font-normal">
-          <span className="block truncate font-semibold text-foreground">
-            {userName || "Your account"}
-          </span>
-          <span className="block truncate text-muted-foreground">{companyName || email}</span>
-        </DropdownMenuLabel>
+        {/* GroupLabel must live inside a Group — without it the popup fails to
+            render at all (the trigger opens but nothing mounts). */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="font-normal">
+            <span className="block truncate font-semibold text-foreground">
+              {userName || "Your account"}
+            </span>
+            <span className="block truncate text-muted-foreground">{companyName || email}</span>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href="/settings" />}>
           <Settings className="size-4" /> Account settings
