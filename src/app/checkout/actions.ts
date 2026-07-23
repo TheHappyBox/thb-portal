@@ -103,10 +103,17 @@ export async function startCheckout(
   const totalUnits = views.reduce((sum, v) => sum + v.quantity, 0);
   const description = `${totalUnits} gift ${totalUnits === 1 ? "box" : "boxes"}`;
 
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(
-    /\/$/,
-    "",
-  );
+  // Stripe needs absolute return URLs. In production NEXT_PUBLIC_SITE_URL MUST be
+  // set to the deployed origin — falling back to localhost would silently send a
+  // paying customer to a dead address. Only development is allowed that fallback.
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  if (!configuredSiteUrl && process.env.NODE_ENV === "production") {
+    return {
+      ok: false,
+      error: "Checkout is temporarily unavailable (site URL not configured). Please try again later.",
+    };
+  }
+  const siteUrl = configuredSiteUrl ?? "http://localhost:3000";
 
   let checkoutUrl: string | null = null;
   let sessionId: string;
