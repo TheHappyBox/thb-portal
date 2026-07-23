@@ -3,7 +3,7 @@
 import type { BrandingOption } from "@/types/catalog";
 import type { SelectedBoxView } from "@/types/order";
 import { brandingForGroup } from "@/lib/order-builder";
-import { formatPrice } from "@/lib/pricing";
+import { formatPrice, sortedVariants } from "@/lib/pricing";
 import { ProductImage } from "@/components/product-image";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,7 +28,8 @@ export function GiftOptionsStep({
   sharedMessage,
   boxViews,
   onChange,
-  onEditBoxes,
+  onChangeBox,
+  onChangeVariant,
 }: {
   brandingOptions: BrandingOption[];
   messageCardOptionId: string | null;
@@ -44,7 +45,14 @@ export function GiftOptionsStep({
     giftFrom?: string;
     sharedMessage?: string;
   }) => void;
-  onEditBoxes: () => void;
+  /** Swap the chosen box — opens the picker (single) or returns to the box step. */
+  onChangeBox: () => void;
+  /**
+   * Change the chosen box's SIZE inline. Only supplied when the box step is
+   * skipped (single send that arrived with a box), where there's no step to go
+   * back to — so the size control lives on the "You're sending" card instead.
+   */
+  onChangeVariant?: (variantId: string) => void;
 }) {
   const messageCards = brandingForGroup(brandingOptions, "message_card");
   const boxBrandings = brandingForGroup(brandingOptions, "box_branding");
@@ -55,6 +63,10 @@ export function GiftOptionsStep({
 
   const preview = boxViews[0] ?? null;
   const moreBoxes = Math.max(0, boxViews.length - 1);
+  // Sizes offered by the chosen box, for the inline size control.
+  const sizeOptions = preview
+    ? sortedVariants(preview.product.variants.filter((v) => v.available))
+    : [];
   const sizeLine = (v: SelectedBoxView) =>
     `${v.variant.name} · ${formatPrice(v.variant.price_cents, v.variant.currency)}`;
 
@@ -84,7 +96,7 @@ export function GiftOptionsStep({
               </p>
               <button
                 type="button"
-                onClick={onEditBoxes}
+                onClick={onChangeBox}
                 className="w-fit text-[13px] font-bold text-brand-navy underline"
               >
                 Change
@@ -96,32 +108,62 @@ export function GiftOptionsStep({
 
       {/* Right: options */}
       <div className="flex min-w-0 flex-1 flex-col gap-8">
-        {/* Selected box summary */}
+        {/* You're sending — the chosen box, changeable in place */}
         {preview && (
-          <div className="flex items-center justify-between gap-3 rounded-[10px] border border-[#e5e7eb] bg-[#f6f8fb] p-4">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="size-16 shrink-0 overflow-hidden rounded-[10px] bg-[#fff8e7]">
-                <ProductImage src={preview.product.image_url} alt={preview.product.name} />
-              </div>
-              <div className="flex min-w-0 flex-col gap-1">
-                <p className="truncate text-[14px] font-extrabold text-brand-navy">
-                  {preview.product.name}
-                </p>
-                {preview.product.description && (
-                  <p className="line-clamp-1 text-[12px] text-[#6b7280]">
-                    {preview.product.description}
+          <div className="flex flex-col gap-2">
+            {onChangeVariant && (
+              <p className="text-[12px] font-bold uppercase tracking-[0.06em] text-[#6b7280]">
+                You&apos;re sending
+              </p>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-[#e5e7eb] bg-[#f6f8fb] p-4">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <div className="size-16 shrink-0 overflow-hidden rounded-[10px] bg-[#fff8e7]">
+                  <ProductImage src={preview.product.image_url} alt={preview.product.name} />
+                </div>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <p className="truncate text-[14px] font-extrabold text-brand-navy">
+                    {preview.product.name}
                   </p>
-                )}
-                <p className="text-[12px] text-[#6b7280]">{sizeLine(preview)}</p>
+                  {preview.product.description && (
+                    <p className="line-clamp-1 text-[12px] text-[#6b7280]">
+                      {preview.product.description}
+                    </p>
+                  )}
+                  {onChangeVariant ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {sizeOptions.length > 1 ? (
+                        <label className="flex items-center gap-2">
+                          <span className="sr-only">Size</span>
+                          <select
+                            value={preview.variantId}
+                            onChange={(e) => onChangeVariant(e.target.value)}
+                            className="rounded-md border border-[#e5e7eb] bg-white px-2 py-1 text-[12px] font-medium text-brand-navy"
+                          >
+                            {sizeOptions.map((v) => (
+                              <option key={v.id} value={v.id}>
+                                {v.name} · {formatPrice(v.price_cents, v.currency)}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : (
+                        <span className="text-[12px] text-[#6b7280]">{sizeLine(preview)}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[12px] text-[#6b7280]">{sizeLine(preview)}</p>
+                  )}
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={onChangeBox}
+                className="shrink-0 text-[13px] font-bold text-brand-navy underline"
+              >
+                Change
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={onEditBoxes}
-              className="shrink-0 text-[13px] font-bold text-brand-navy underline"
-            >
-              Change
-            </button>
           </div>
         )}
 

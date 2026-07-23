@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { ProductImage } from "@/components/product-image";
 import { defaultVariant, priceLabel, sortedVariants } from "@/lib/pricing";
+import { NewOrderMenu } from "@/components/portal/new-order-menu";
 import type { ProductWithRelations } from "@/types/catalog";
 
 /**
@@ -44,11 +44,6 @@ export function BoxDetailModal({
       document.body.style.overflow = prevOverflow;
     };
   }, [onClose]);
-
-  const orderHref =
-    product.shopify_handle && selected
-      ? `/orders/new?box=${product.shopify_handle}&variant=${selected.id}`
-      : "/orders/new";
 
   return (
     <div
@@ -137,14 +132,17 @@ export function BoxDetailModal({
             </div>
           )}
 
-          {/* CTA */}
+          {/* CTA — forks into a single or bulk send, carrying this box + size */}
           <div className="flex flex-col gap-3">
-            <Link
-              href={orderHref}
-              className="flex h-14 items-center justify-center rounded-[10px] bg-brand-navy text-[18px] font-bold text-white transition hover:bg-brand-navy/90"
+            <NewOrderMenu
+              triggerLabel={`Start an order with ${product.name}`}
+              boxHandle={product.shopify_handle}
+              variantId={selected?.id}
+              align="center"
+              triggerClassName="flex h-14 w-full items-center justify-center rounded-[10px] bg-brand-navy text-[18px] font-bold text-white outline-none transition hover:bg-brand-navy/90 focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               Start an order with this box →
-            </Link>
+            </NewOrderMenu>
             <p className="text-center text-[13px] text-brand-ink-soft">
               Usually ships within 3–5 business days
             </p>

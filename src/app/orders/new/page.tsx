@@ -1,18 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { loadPortalChrome } from "@/lib/portal-chrome";
 import { PortalSidebar } from "@/components/portal/portal-sidebar";
-import { AccountMenu } from "@/components/portal/account-menu";
-import { Button } from "@/components/ui/button";
 import { OrderBuilder } from "@/components/order-builder/order-builder";
 import { defaultVariant } from "@/lib/pricing";
 import { withAvailableVariants } from "@/lib/order-builder";
 import { loadDraftBuilderState } from "@/lib/order-queries";
 import type { BrandingOption, ProductWithRelations } from "@/types/catalog";
-import type { BuilderState, SelectedBox } from "@/types/order";
+import type { BuilderState, OrderMode, SelectedBox } from "@/types/order";
 
 export const metadata: Metadata = {
   title: "New order · The Happy Box",
@@ -33,7 +29,12 @@ export default async function NewOrderPage({
   searchParams,
 }: {
   // Next 16: searchParams is a Promise and must be awaited.
-  searchParams: Promise<{ box?: string; variant?: string; draft?: string }>;
+  searchParams: Promise<{
+    box?: string;
+    variant?: string;
+    draft?: string;
+    mode?: string;
+  }>;
 }) {
   const supabase = await createClient();
 
@@ -74,7 +75,11 @@ export default async function NewOrderPage({
 
   const brandingOptions = (brandingData ?? []) as BrandingOption[];
 
-  const { box: boxHandle, variant: variantId, draft } = await searchParams;
+  const { box: boxHandle, variant: variantId, draft, mode } = await searchParams;
+
+  // The single-vs-bulk choice is made at the entry point and carried in here, so
+  // the builder never has to ask. Anything unrecognised falls back to single.
+  const initialMode: OrderMode = mode === "multiple" ? "multiple" : "single";
 
   // Resume flow: ?draft=<orderId> reopens a saved draft pre-filled. The draft is
   // loaded account-scoped (RLS); a missing/foreign order sends them to the list,
@@ -112,31 +117,16 @@ export default async function NewOrderPage({
       <PortalSidebar active="orders" ordersBadge={chrome.draftBadge} />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Builder header */}
-        <header className="flex h-20 flex-none items-center justify-between bg-white px-16">
-          <h1 className="text-[24px] font-extrabold text-brand-navy">Build your order</h1>
-          <div className="flex items-center gap-3">
-            <AccountMenu
-              initials={chrome.initials}
-              userName={chrome.userName}
-              companyName={chrome.companyName}
-              email={chrome.email}
-            />
-            <Button
-              render={<Link href="/orders/new" />}
-              variant="secondary"
-              className="h-10 gap-1.5 rounded-md px-6 text-[14px] font-semibold"
-            >
-              <Plus className="size-4" /> New order
-            </Button>
-          </div>
-        </header>
-
         <OrderBuilder
           products={products}
           brandingOptions={brandingOptions}
           initialBox={initialBox}
+          initialMode={initialMode}
           initialDraft={initialDraft}
+          userName={chrome.userName}
+          companyName={chrome.companyName}
+          email={chrome.email}
+          initials={chrome.initials}
         />
       </div>
     </div>

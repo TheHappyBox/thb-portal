@@ -155,6 +155,57 @@ export function reconcileBoxesForMode(
   return boxes;
 }
 
+// ---------------------------------------------------------------------------
+// Flow shape
+//
+// The single-vs-bulk mode is chosen at the ENTRY POINT and carried into the
+// builder, so there is no mode step. A SINGLE send that already has its one box
+// (arrived from the catalog, or resumed from a draft) also skips the box step —
+// the box is shown as a changeable card instead of a step to walk through.
+// ---------------------------------------------------------------------------
+
+export type BuilderStep = "boxes" | "giftOptions" | "recipients" | "summary";
+
+/** The steps shown, in order, for a given mode. */
+export function stepsForFlow(
+  mode: OrderMode,
+  skipBoxes: boolean,
+): { key: BuilderStep; label: string }[] {
+  const steps: { key: BuilderStep; label: string }[] = [
+    { key: "boxes", label: "Boxes" },
+    { key: "giftOptions", label: "Gift options" },
+    { key: "recipients", label: mode === "single" ? "Recipient" : "Recipients" },
+    { key: "summary", label: "Review" },
+  ];
+  return skipBoxes ? steps.filter((s) => s.key !== "boxes") : steps;
+}
+
+/**
+ * Whether the box step can be skipped. Only a SINGLE send with its one box
+ * already chosen qualifies — bulk always walks the box step, since quantities
+ * still need setting. Evaluate once when the builder opens so the step list
+ * stays stable while the buyer edits.
+ */
+export function skipsBoxStep(state: BuilderState): boolean {
+  return (state.mode ?? "single") === "single" && boxesValidForMode(state.boxes, "single");
+}
+
+/**
+ * Where the builder opens.
+ *
+ * A FRESH build always starts at the beginning of its own flow — notably a bulk
+ * send that arrived with a box still opens on Boxes, because the box is only
+ * pre-filled there and quantities still need setting. Only a RESUMED draft (one
+ * that already has an order id) jumps ahead to its first unfinished step.
+ */
+export function firstStepFor(state: BuilderState, skipBoxes: boolean): BuilderStep {
+  const mode = state.mode ?? "single";
+  if (!state.orderId) return skipBoxes ? "giftOptions" : "boxes";
+  if (!skipBoxes && !boxesValidForMode(state.boxes, mode)) return "boxes";
+  if (recipientsValid(state.recipients)) return "summary";
+  return "recipients";
+}
+
 /** Whether the box selection satisfies the chosen mode. */
 export function boxesValidForMode(boxes: SelectedBox[], mode: OrderMode): boolean {
   if (boxes.length === 0) return false;
@@ -259,17 +310,46 @@ export function isValidEmail(email: string): boolean {
  * `recipientsValid`); the rest are soft warnings.
  */
 export function recipientIssues(r: RecipientDraft): string[] {
-  const issues: string[] = [];
-  if (!r.fullName.trim()) issues.push("Name is required");
-  if (r.email.trim() && !isValidEmail(r.email)) issues.push("Email looks invalid");
+  return Object.values(recipientFieldErrors(r));
+}
+
+/**
+ * The same checks as recipientIssues, but keyed BY FIELD so each message can be
+ * rendered under the input it belongs to instead of stacked at the bottom.
+ *
+ * Only `fullName` blocks progress (see recipientsValid) — the address messages
+ * are delivery advisories, since a recipient can instead be sent a self-claim
+ * link. Callers style them accordingly.
+ */
+export interface RecipientFieldErrors {
+  fullName?: string;
+  email?: string;
+  addressLine1?: string;
+  city?: string;
+  postalCode?: string;
+  country?: string;
+}
+
+/** Address fields that are advisories rather than hard blockers. */
+export const ADVISORY_RECIPIENT_FIELDS = [
+  "addressLine1",
+  "city",
+  "postalCode",
+  "country",
+] as const;
+
+export function recipientFieldErrors(r: RecipientDraft): RecipientFieldErrors {
+  const errors: RecipientFieldErrors = {};
+  if (!r.fullName.trim()) errors.fullName = "Name is required";
+  if (r.email.trim() && !isValidEmail(r.email)) errors.email = "Email looks invalid";
   if (!r.selfClaim) {
-    const hasAddress =
-      r.addressLine1.trim() && r.city.trim() && r.postalCode.trim() && r.country.trim();
-    if (!hasAddress) {
-      issues.push("Add an address, or switch on the self-claim link");
-    }
+    const needed = "Needed for delivery — or switch on the self-claim link";
+    if (!r.addressLine1.trim()) errors.addressLine1 = needed;
+    if (!r.city.trim()) errors.city = "City is needed for delivery";
+    if (!r.postalCode.trim()) errors.postalCode = "Postal code is needed for delivery";
+    if (!r.country.trim()) errors.country = "Country is needed for delivery";
   }
-  return issues;
+  return errors;
 }
 
 /** Enough to advance: at least one recipient and every recipient has a name. */

@@ -27,12 +27,9 @@ export function RecipientsStep({
     const r = recipients[0] ?? blankRecipient();
     return (
       <section className="flex flex-col gap-5">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-2xl font-semibold text-foreground">Recipient</h2>
-          <p className="text-muted-foreground">
-            Add their address, or send them a link to add it themselves.
-          </p>
-        </div>
+        <p className="text-muted-foreground">
+          Add their address, or send them a link to add it themselves.
+        </p>
         <RecipientRow
           recipient={r}
           sharedMessage={sharedMessage}
@@ -53,12 +50,9 @@ export function RecipientsStep({
 
   return (
     <section className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-2xl font-semibold text-foreground">Recipients</h2>
-        <p className="text-muted-foreground">
-          Add everyone receiving a gift — manually or by uploading a list.
-        </p>
-      </div>
+      <p className="text-muted-foreground">
+        Add everyone receiving a gift — manually or by uploading a list.
+      </p>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">

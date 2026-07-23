@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import type { ProductWithRelations } from "@/types/catalog";
 import { defaultVariant, priceLabel, sortedVariants } from "@/lib/pricing";
 import { ProductImage } from "@/components/product-image";
+import { NewOrderMenu } from "@/components/portal/new-order-menu";
 
 /**
  * A single gift box in the catalog grid, rebuilt to match the Figma: a large
@@ -20,10 +20,6 @@ export function ProductCard({
 }) {
   const variants = sortedVariants(product.variants);
   const defaultV = defaultVariant(variants);
-  const orderHref =
-    product.shopify_handle && defaultV
-      ? `/orders/new?box=${product.shopify_handle}&variant=${defaultV.id}`
-      : "/orders/new";
 
   return (
     <div className="flex flex-col overflow-hidden rounded-[14px] border border-brand-border-warm bg-white transition hover:-translate-y-0.5 hover:shadow-[0px_8px_24px_0px_rgba(0,0,0,0.08)]">
@@ -51,12 +47,14 @@ export function ProductCard({
           >
             View details
           </button>
-          <Link
-            href={orderHref}
-            className="rounded-md bg-brand-navy px-4 py-2.5 text-[13px] font-bold text-white transition hover:bg-brand-navy/90"
+          <NewOrderMenu
+            triggerLabel={`Order ${product.name}`}
+            boxHandle={product.shopify_handle}
+            variantId={defaultV?.id}
+            triggerClassName="inline-flex items-center rounded-md bg-brand-navy px-4 py-2.5 text-[13px] font-bold text-white outline-none transition hover:bg-brand-navy/90 focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             Order now
-          </Link>
+          </NewOrderMenu>
         </div>
       </div>
     </div>
